@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'payments.apps.PaymentsConfig',
     'accounts',
     'home',
+    'ai_search',
 ]
 
 MIDDLEWARE = [
