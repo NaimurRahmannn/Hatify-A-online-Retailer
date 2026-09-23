@@ -1,6 +1,6 @@
 <div align="center">
 
-# ðŸ›’ Haatify â€” E-Commerce Storefront
+# 🛒 Haatify — E-Commerce Storefront
 
 ### A modern, full-featured e-commerce platform built with Django
 
@@ -12,102 +12,107 @@
 
 <br/>
 
-**[ðŸŒ Live Demo](https://haatify.onrender.com)** &nbsp;Â·&nbsp; **[ðŸ› Report Bug](../../issues)** &nbsp;Â·&nbsp; **[âœ¨ Request Feature](../../issues)**
+**[🌐 Live Demo](https://haatify.onrender.com)** &nbsp;·&nbsp; **[🐛 Report Bug](../../issues)** &nbsp;·&nbsp; **[✨ Request Feature](../../issues)**
 
 ---
 
 </div>
 
-## ðŸ“– About
+## 📖 About
 
 **Haatify** is a clean, responsive e-commerce storefront designed for fashion retail. It supports product browsing by categories (Men & Women), shopping cart management, order checkout with multiple payment options, user authentication, and an admin dashboard for managing inventory.
 
 <br/>
 
-## ðŸŽ¬ Project Video
+## 🎬 Project Video
 
 - YouTube Demo: https://youtu.be/06E7dtBlxFk?si=zh1EPSy-Z79_eTTK
 
 <br/>
 
-## âš¡ Features
+## ⚡ Features
 
 | Feature | Description |
 |---------|-------------|
-| ðŸ  **Homepage** | Hero section with featured products and category navigation |
-| ðŸ‘• **Product Catalog** | Browse products by Men's and Women's categories |
-| ðŸ” **Search** | Full-text search across product names, categories & descriptions |
-| ðŸ›ï¸ **Shopping Cart** | Session-based cart with add, update quantity & remove |
-| ðŸ’³ **Checkout** | Stripe-hosted Checkout (test mode), bKash, Nagad & Cash on Delivery |
-| ðŸ§¾ **Invoice** | Order confirmation with invoice details |
-| ðŸ‘¤ **User Accounts** | Registration, login & email verification |
-| ðŸŽ¨ **Product Variants** | Color and size variants with variant-based pricing |
-| ðŸ–¼ï¸ **Image Gallery** | Multiple images per product with Cloudinary storage |
-| ðŸ“± **Responsive Design** | Mobile-first UI with Bootstrap |
-| ðŸ” **Admin Panel** | Django admin for full CRUD on products, orders & users |
+| 🏠 **Homepage** | Hero section with featured products and category navigation |
+| 👕 **Product Catalog** | Browse products by Men's and Women's categories |
+| 🔍 **Search** | Full-text search across product names, categories & descriptions |
+| 🛍️ **Shopping Cart** | Session-based cart with add, update quantity & remove |
+| 💳 **Checkout** | Stripe-hosted Checkout (test mode), bKash, Nagad & Cash on Delivery |
+| 🧾 **Invoice** | Order confirmation with invoice details & PDF download |
+| 👤 **User Accounts** | Registration, login & Google OAuth |
+| 🎨 **Product Variants** | Color and size variants with variant-based pricing |
+| 🖼️ **Image Gallery** | Multiple images per product with Cloudinary storage |
+| 📱 **Responsive Design** | Mobile-first UI with Bootstrap |
+| 🔐 **Admin Panel** | Django admin for full CRUD on products, orders & users |
+| 💰 **Stripe Payments** | Secure Stripe-hosted Checkout with webhook verification |
 
 <br/>
 
-## ðŸ› ï¸ Tech Stack
+## 🛠️ Tech Stack
 
 <div align="center">
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Django 5.2 Â· Gunicorn |
+| **Backend** | Django 5.2 · Gunicorn |
 | **Database** | PostgreSQL (via dj-database-url) |
+| **Payments** | Stripe Checkout (test mode) |
 | **Media Storage** | Cloudinary |
 | **Static Files** | WhiteNoise |
-| **Frontend** | Bootstrap Â· jQuery Â· Font Awesome |
+| **Frontend** | Bootstrap · jQuery · Font Awesome |
 | **Deployment** | Render.com |
 
 </div>
 
 <br/>
 
-## ðŸ“ Project Structure
+## 📁 Project Structure
 
 ```
 Ecommerce_Storefront/
-â”‚
-â”œâ”€â”€ Ecommerce_Storefront/    # Django project settings & config
-â”‚   â”œâ”€â”€ settings.py
-â”‚   â”œâ”€â”€ urls.py
-â”‚   â””â”€â”€ wsgi.py
-â”‚
-â”œâ”€â”€ home/                    # Homepage & contact page
-â”œâ”€â”€ products/                # Product catalog, cart, checkout & orders
-â”œâ”€â”€ accounts/                # User auth, profiles & email verification
-â”œâ”€â”€ base/                    # Shared base model & email utilities
-â”‚
-â”œâ”€â”€ templates/               # HTML templates
-â”‚   â”œâ”€â”€ base/                #   â””â”€ base layout, sidebar, alerts
-â”‚   â”œâ”€â”€ home/                #   â””â”€ index, contact
-â”‚   â”œâ”€â”€ product/             #   â””â”€ product detail, cart, checkout, invoice, search
-â”‚   â””â”€â”€ accounts/            #   â””â”€ login, register
-â”‚
-â”œâ”€â”€ public/static/           # CSS, JS, fonts & images
-â”œâ”€â”€ build.sh                 # Render build script
-â”œâ”€â”€ manage.py
-â””â”€â”€ requirements.txt
+│
+├── Ecommerce_Storefront/    # Django project settings & config
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+│
+├── home/                    # Homepage & contact page
+├── products/                # Product catalog, cart, checkout & orders
+├── payments/                # Stripe Checkout, webhooks & payment services
+├── accounts/                # User auth, profiles & email verification
+├── base/                    # Shared base model & email utilities
+│
+├── templates/               # HTML templates
+│   ├── base/                #   └─ base layout, sidebar, alerts
+│   ├── home/                #   └─ index, contact
+│   ├── product/             #   └─ product detail, cart, checkout, invoice, search
+│   ├── payments/            #   └─ success, cancel
+│   └── accounts/            #   └─ login, register
+│
+├── public/static/           # CSS, JS, fonts & images
+├── build.sh                 # Render build script
+├── manage.py
+└── requirements.txt
 ```
 
 <br/>
 
-## ðŸš€ Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - Python 3.10+
 - PostgreSQL (or use SQLite for local dev)
 - Cloudinary account (for media uploads)
+- Stripe account (for payment testing)
 
 ### Installation
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<NaimurRahmannn>/Ecommerce_Storefront.git
-cd Ecommerce_Storefront
+git clone https://github.com/NaimurRahmannn/Ecommerce-sites-with-Django.git
+cd Ecommerce-sites-with-Django
 
 # 2. Create & activate virtual environment
 python -m venv .venv
@@ -118,12 +123,8 @@ source .venv/bin/activate        # Linux/macOS
 pip install -r requirements.txt
 
 # 4. Set environment variables
-#    Create a .env file or export these:
-export SECRET_KEY="your-secret-key"
-export DATABASE_URL="postgres://user:pass@host:5432/dbname"
-export CLOUD_NAME="your-cloudinary-cloud"
-export API_KEY="your-cloudinary-key"
-export API_SECRET="your-cloudinary-secret"
+#    Copy .env.example to .env and fill in your values:
+cp .env.example .env
 
 # 5. Apply migrations
 python manage.py migrate
@@ -135,31 +136,31 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Visit **http://127.0.0.1:8000** and start exploring! ðŸŽ‰
+Visit **http://127.0.0.1:8000** and start exploring! 🎉
 
 <br/>
 
-## ðŸŒ Deployment (Render)
+## 🌍 Deployment (Render)
 
 This project is production-ready for **Render.com**:
 
 1. Connect your GitHub repo to Render
-2. Set **Build Command** â†’ `./build.sh`
-3. Set **Start Command** â†’ `gunicorn Ecommerce_Storefront.wsgi`
-4. Add the environment variables listed above
-5. Deploy! ðŸš€
+2. Set **Build Command** → `./build.sh`
+3. Set **Start Command** → `gunicorn Ecommerce_Storefront.wsgi`
+4. Add the environment variables listed below
+5. Deploy! 🚀
 
 <br/>
 
-## ðŸ“¦ Environment Variables
+## 📦 Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `SECRET_KEY` | Django secret key |
 | `DATABASE_URL` | PostgreSQL connection string |
-| `CLOUD_NAME` | Cloudinary cloud name |
-| `API_KEY` | Cloudinary API key |
-| `API_SECRET` | Cloudinary API secret |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 | `GOOGLE_CLIENT_ID` | Google OAuth web client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `STRIPE_PUBLIC_KEY` | Stripe publishable key (must start with `pk_test_`) |
@@ -202,7 +203,7 @@ The local CLI signing secret is **different** from the Dashboard endpoint secret
 
 ```bash
 # Install the Stripe CLI, then:
-stripe listen --forward-to localhost:8000/payments/webhook/
+stripe listen --forward-to localhost:8000/payments/webhook/ --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,payment_intent.payment_failed,charge.refunded
 ```
 
 The CLI prints a signing secret (`whsec_...`). Set it as `STRIPE_WEBHOOK_SECRET` in your `.env`.
@@ -240,8 +241,7 @@ Check the [Stripe Dashboard → Webhooks → Recent Deliveries](https://dashboar
 
 <br/>
 
-
-## ðŸ¤ Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Feel free to open an issue or submit a pull request.
 
@@ -250,15 +250,4 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-<br/>
-
----
-
-<div align="center">
-
-**Built with â¤ï¸ using Django**
-
-â­ Star this repo if you found it helpful!
-
 </div>
