@@ -530,8 +530,16 @@
       </div>
     </div>
 
-    <form id="checkoutForm" method="POST" action="{% url 'place_order' %}" novalidate>
+    <form
+      id="checkoutForm"
+      method="POST"
+      action="{% if stripe_enabled %}{% url 'payments:create_checkout' %}{% else %}{% url 'place_order' %}{% endif %}"
+      data-stripe-action="{% url 'payments:create_checkout' %}"
+      data-legacy-action="{% url 'place_order' %}"
+      novalidate
+    >
     {% csrf_token %}
+    <input type="hidden" name="checkout_token" value="{{ checkout_token }}" />
     {% for item in checkout_items %}
     <input type="hidden" name="product_ids" value="{{ item.product.uid }}" />
     <input type="hidden" name="quantities" value="{{ item.quantity }}" />
@@ -607,13 +615,15 @@
 
             <!-- Payment method tabs -->
             <div class="payment-method-tabs">
-              <label class="payment-method-tab active" data-target="panel-card" onclick="switchPayment(this)">
-                <input type="radio" name="payment_method" value="card" checked />
+              {% if stripe_enabled %}
+              <label class="payment-method-tab active" data-target="panel-stripe" onclick="switchPayment(this)">
+                <input type="radio" name="payment_method" value="stripe" checked />
                 <span class="tab-icon"><i class="fas fa-credit-card"></i></span>
-                <span class="tab-label">Card</span>
+                <span class="tab-label">Stripe</span>
               </label>
-              <label class="payment-method-tab" data-target="panel-bkash" onclick="switchPayment(this)">
-                <input type="radio" name="payment_method" value="bkash" />
+              {% endif %}
+              <label class="payment-method-tab{% if not stripe_enabled %} active{% endif %}" data-target="panel-bkash" onclick="switchPayment(this)">
+                <input type="radio" name="payment_method" value="bkash"{% if not stripe_enabled %} checked{% endif %} />
                 <span class="tab-icon"><i class="fas fa-mobile-alt"></i></span>
                 <span class="tab-label">bKash</span>
               </label>
@@ -629,36 +639,19 @@
               </label>
             </div>
 
-            <!-- Card Panel -->
-            <div id="panel-card" class="payment-panel active">
-              <div class="form-group">
-                <label>Card Number <span class="text-danger">*</span></label>
-                <input type="text" name="card_number" class="form-control" placeholder="1234  5678  9012  3456" />
-              </div>
-              <div class="form-row">
-                <div class="form-group col-md-4">
-                  <label>Expiry Date <span class="text-danger">*</span></label>
-                  <input type="text" name="card_expiry" class="form-control" placeholder="MM / YY" />
-                </div>
-                <div class="form-group col-md-4">
-                  <label>CVV <span class="text-danger">*</span></label>
-                  <input type="password" name="card_cvv" class="form-control" placeholder="&#9679;&#9679;&#9679;" />
-                </div>
-                <div class="form-group col-md-4">
-                  <label>Name on Card <span class="text-danger">*</span></label>
-                  <input type="text" name="card_name" class="form-control" placeholder="John Doe" />
-                </div>
-              </div>
-              <div class="payment-icons">
-                <span class="pay-icon"><i class="fab fa-cc-visa"></i></span>
-                <span class="pay-icon"><i class="fab fa-cc-mastercard"></i></span>
-                <span class="pay-icon"><i class="fab fa-cc-amex"></i></span>
-                <span class="pay-icon"><i class="fab fa-cc-paypal"></i></span>
+            {% if stripe_enabled %}
+            <!-- Stripe-hosted Checkout Panel -->
+            <div id="panel-stripe" class="payment-panel active">
+              <div class="cod-note">
+                <i class="fas fa-shield-alt"></i>
+                <h6>Secure Stripe-hosted Checkout</h6>
+                <p>You will enter your card details securely on Stripe's hosted payment page.</p>
               </div>
             </div>
+            {% endif %}
 
             <!-- bKash Panel -->
-            <div id="panel-bkash" class="payment-panel">
+            <div id="panel-bkash" class="payment-panel{% if not stripe_enabled %} active{% endif %}">
               <div class="mobile-payment-steps">
                 <div class="steps-title">
                   <i class="fas fa-info-circle"></i> How to pay with bKash
@@ -774,7 +767,7 @@
 
           <button type="submit" class="btn btn-place-order" id="placeOrderBtn">
             <i class="fas fa-lock" style="margin-right:6px; font-size:14px;"></i>
-            Place Order
+            {% if stripe_enabled %}Proceed to Stripe Payment{% else %}Place Order{% endif %}
           </button>
 
           {% if back_url == "get_product" %}
@@ -815,6 +808,17 @@ function switchPayment(el) {
   if (target) {
     target.classList.add('active');
   }
+
+  var form = document.getElementById('checkoutForm');
+  var button = document.getElementById('placeOrderBtn');
+  var method = el.querySelector('input[type="radio"]').value;
+  if (method === 'stripe') {
+    form.action = form.getAttribute('data-stripe-action');
+    button.innerHTML = '<i class="fas fa-lock" style="margin-right:6px; font-size:14px;"></i> Proceed to Stripe Payment';
+  } else {
+    form.action = form.getAttribute('data-legacy-action');
+    button.innerHTML = '<i class="fas fa-lock" style="margin-right:6px; font-size:14px;"></i> Place Order';
+  }
 }
 
 document.getElementById('checkoutForm').addEventListener('submit', function(e) {
@@ -845,21 +849,7 @@ document.getElementById('checkoutForm').addEventListener('submit', function(e) {
   // Payment-specific validation
   var method = document.querySelector('input[name="payment_method"]:checked').value;
 
-  if (method === 'card') {
-    var cardFields = [
-      {name: 'card_number', label: 'Card Number'},
-      {name: 'card_expiry', label: 'Expiry Date'},
-      {name: 'card_cvv', label: 'CVV'},
-      {name: 'card_name', label: 'Name on Card'}
-    ];
-    cardFields.forEach(function(f) {
-      var input = document.querySelector('[name="' + f.name + '"]');
-      if (!input || !input.value.trim()) {
-        errors.push(f.label + ' is required');
-        if (input) input.classList.add('is-invalid');
-      }
-    });
-  } else if (method === 'bkash') {
+  if (method === 'bkash') {
     var trx = document.querySelector('[name="bkash_trx_id"]');
     if (!trx || !trx.value.trim()) {
       errors.push('bKash Transaction ID is required');
@@ -881,6 +871,12 @@ document.getElementById('checkoutForm').addEventListener('submit', function(e) {
       firstInvalid.focus();
     }
     alert('Please fill in all required fields:\n\n' + errors.join('\n'));
+  } else {
+    var submitButton = document.getElementById('placeOrderBtn');
+    submitButton.disabled = true;
+    if (method === 'stripe') {
+      submitButton.textContent = 'Redirecting to Stripe...';
+    }
   }
 });
 </script>

@@ -101,12 +101,14 @@
           <div class="inv-info-col">
             <h5>Payment Information</h5>
             <p><strong>Method:</strong>
-              {% if order.payment_method == 'card' %}Card Payment
+              {% if order.payment_method == 'stripe' %}Stripe Checkout
+              {% elif order.payment_method == 'card' %}Legacy Card Payment
               {% elif order.payment_method == 'bkash' %}bKash
               {% elif order.payment_method == 'nagad' %}Nagad
               {% else %}Cash on Delivery
               {% endif %}
             </p>
+            <p><strong>Payment status:</strong> {{ order.get_payment_status_display }}</p>
             {% if order.transaction_id %}
             <p><strong>Transaction ID:</strong> {{ order.transaction_id }}</p>
             {% endif %}

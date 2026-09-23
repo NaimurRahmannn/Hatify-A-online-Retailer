@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.utils.text import slugify
 from base.models import Basemodel
 
@@ -72,7 +73,8 @@ class ProductImage(Basemodel):
 
 
 PAYMENT_METHOD_CHOICES = (
-    ('card', 'Card'),
+    ('card', 'Legacy Card'),
+    ('stripe', 'Stripe Checkout'),
     ('bkash', 'bKash'),
     ('nagad', 'Nagad'),
     ('cod', 'Cash on Delivery'),
@@ -87,7 +89,21 @@ ORDER_STATUS_CHOICES = (
 )
 
 class Order(Basemodel):
+    class PaymentStatus(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        PAID = 'paid', 'Paid'
+        FAILED = 'failed', 'Failed'
+        CANCELLED = 'cancelled', 'Cancelled'
+        REFUNDED = 'refunded', 'Refunded'
+
     order_number = models.PositiveIntegerField(unique=True, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='orders',
+    )
     email = models.EmailField()
     phone = models.CharField(max_length=30)
     first_name = models.CharField(max_length=100)
@@ -97,6 +113,16 @@ class Order(Basemodel):
     state = models.CharField(max_length=100)
     zip_code = models.CharField(max_length=20)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHOD_CHOICES)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING,
+    )
+    payment_currency = models.CharField(max_length=3, blank=True, default='')
+    payment_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    exchange_rate = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    stripe_checkout_session_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    checkout_token = models.UUIDField(null=True, blank=True, unique=True)
     order_status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=100, blank=True, default='')
     reference = models.CharField(max_length=100, blank=True, default='')

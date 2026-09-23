@@ -36,11 +36,11 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'first_name', 'last_name', 'email', 'order_status', 'payment_method', 'total', 'created_at']
-    list_filter = ['order_status', 'payment_method', 'created_at']
-    search_fields = ['order_number', 'email', 'first_name', 'last_name', 'transaction_id']
+    list_display = ['order_number', 'first_name', 'last_name', 'email', 'order_status', 'payment_method', 'payment_status', 'total', 'created_at']
+    list_filter = ['order_status', 'payment_method', 'payment_status', 'created_at']
+    search_fields = ['order_number', 'email', 'first_name', 'last_name', 'transaction_id', 'stripe_checkout_session_id']
     list_editable = ['order_status']
-    readonly_fields = ['order_number']
+    readonly_fields = ['order_number', 'user', 'payment_status', 'payment_currency', 'payment_amount', 'exchange_rate', 'stripe_checkout_session_id', 'checkout_token', 'transaction_id']
     inlines = [OrderItemInline]
 
 admin.site.register(Product ,ProductAdmin)

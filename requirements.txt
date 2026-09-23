@@ -9,3 +9,4 @@ cloudinary==1.44.1
 python-dotenv==1.0.1
 django-allauth[socialaccount]==65.19.4
 PyJWT==2.10.1
+stripe==15.6.1

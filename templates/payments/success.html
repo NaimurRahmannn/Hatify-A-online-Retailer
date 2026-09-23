@@ -1,0 +1,26 @@
+{% extends "base/base.html" %}
+
+{% block start %}
+<section class="section-content padding-y">
+  <div class="container">
+    {% if order.payment_status == "paid" %}
+    <h2>Payment confirmed</h2>
+    <p>Stripe has confirmed your payment.</p>
+    {% elif order.payment_status == "failed" %}
+    <h2>Payment failed</h2>
+    <p>Stripe could not complete this payment.</p>
+    {% elif order.payment_status == "cancelled" %}
+    <h2>Payment cancelled</h2>
+    <p>This Checkout Session has expired.</p>
+    {% elif order.payment_status == "refunded" %}
+    <h2>Payment refunded</h2>
+    <p>Stripe has reported a full refund for this order.</p>
+    {% else %}
+    <h2>Payment is processing</h2>
+    <p>The signed Stripe webhook has not confirmed payment yet. Refresh this page shortly.</p>
+    {% endif %}
+    <p>Order #{{ order.order_number }}</p>
+    <a href="{% url 'invoice' order.order_number %}" class="btn btn-primary">View invoice</a>
+  </div>
+</section>
+{% endblock %}

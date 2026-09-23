@@ -1,0 +1,14 @@
+{% extends "base/base.html" %}
+
+{% block start %}
+<section class="section-content padding-y">
+  <div class="container">
+    <h2>Stripe Checkout was cancelled</h2>
+    <p>Your order remains pending until Stripe reports that the Checkout Session expired.</p>
+    <form method="post" action="{% url 'payments:retry' order.uid %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">Return to Stripe Checkout</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

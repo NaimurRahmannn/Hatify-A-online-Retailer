@@ -1,8 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib import messages
+from django.conf import settings
 from django.db.models import Q
 from products.models import Product, Category, Order, OrderItem
+from products.checkout_snapshots import (
+    CheckoutSnapshotError,
+    create_checkout_snapshot,
+)
 
 
 def _get_cart(request):
@@ -212,20 +217,39 @@ def buy_now(request, slug):
 
     line_total = product.price * quantity
     subtotal = line_total
+    checkout_items = [
+        {
+            "product": product,
+            "quantity": quantity,
+            "size": size,
+            "line_total": line_total,
+        }
+    ]
+    try:
+        checkout_token = create_checkout_snapshot(
+            request,
+            [
+                {
+                    "product_id": str(item["product"].pk),
+                    "quantity": item["quantity"],
+                    "size": item["size"],
+                }
+                for item in checkout_items
+            ],
+        )
+    except CheckoutSnapshotError as error:
+        messages.error(request, str(error))
+        return redirect("get_product", slug=product.slug)
+
     context = {
-        "checkout_items": [
-            {
-                "product": product,
-                "quantity": quantity,
-                "size": size,
-                "line_total": line_total,
-            }
-        ],
+        "checkout_items": checkout_items,
         "subtotal": subtotal,
         "shipping": 100,
         "total": subtotal + 100,
         "back_url": "get_product",
         "back_url_kwargs": {"slug": product.slug},
+        "checkout_token": checkout_token,
+        "stripe_enabled": settings.STRIPE_ENABLED,
     }
     return render(request, "product/checkout.html", context)
 
@@ -255,12 +279,30 @@ def checkout(request):
         messages.error(request, "Your cart is empty.")
         return redirect("cart")
 
+    try:
+        checkout_token = create_checkout_snapshot(
+            request,
+            [
+                {
+                    "product_id": str(item["product"].pk),
+                    "quantity": item["quantity"],
+                    "size": item["size"],
+                }
+                for item in checkout_items
+            ],
+        )
+    except CheckoutSnapshotError as error:
+        messages.error(request, str(error))
+        return redirect("cart")
+
     context = {
         "checkout_items": checkout_items,
         "subtotal": subtotal,
         "shipping": 100,
         "total": subtotal + 100,
         "back_url": "cart",
+        "checkout_token": checkout_token,
+        "stripe_enabled": settings.STRIPE_ENABLED,
     }
     return render(request, "product/checkout.html", context)
 
@@ -415,10 +457,15 @@ def place_order(request):
 
 def invoice(request, order_number):
     order = get_object_or_404(Order, order_number=order_number)
+    if order.payment_method == "stripe":
+        if not request.user.is_staff and (
+            not request.user.is_authenticated or order.user_id != request.user.id
+        ):
+            return HttpResponseForbidden("You do not have permission to view this invoice.")
+    # Preserve the existing guest-compatible behavior for legacy payment methods.
     # Only allow the person who placed the order (or staff) to view the invoice
-    if not request.user.is_staff and order.email != request.POST.get('email', request.GET.get('email', '')):
+    elif not request.user.is_staff and order.email != request.POST.get('email', request.GET.get('email', '')):
         if request.user.is_authenticated and order.email != request.user.email:
-            from django.http import HttpResponseForbidden
             return HttpResponseForbidden("You do not have permission to view this invoice.")
     context = {
         "order": order,

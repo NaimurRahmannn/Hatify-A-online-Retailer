@@ -14,10 +14,19 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
+from payments.config import build_stripe_configuration
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 TEMPLATES_DIR=os.path.join(BASE_DIR, 'templates')
+
+STRIPE_CONFIG = build_stripe_configuration(os.environ)
+STRIPE_PUBLIC_KEY = STRIPE_CONFIG.public_key
+STRIPE_SECRET_KEY = STRIPE_CONFIG.secret_key
+STRIPE_WEBHOOK_SECRET = STRIPE_CONFIG.webhook_secret
+STRIPE_CURRENCY = STRIPE_CONFIG.currency
+STRIPE_BDT_PER_USD = STRIPE_CONFIG.bdt_per_unit
+STRIPE_ENABLED = STRIPE_CONFIG.enabled
 
 
 # Quick-start development settings - unsuitable for production
@@ -57,6 +66,7 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'cloudinary',
     'products',
+    'payments.apps.PaymentsConfig',
     'accounts',
     'home',
 ]
