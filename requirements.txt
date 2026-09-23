@@ -7,3 +7,5 @@ dj-database-url==2.3.0
 django-cloudinary-storage==0.3.0
 cloudinary==1.44.1
 python-dotenv==1.0.1
+django-allauth[socialaccount]==65.19.4
+PyJWT==2.10.1

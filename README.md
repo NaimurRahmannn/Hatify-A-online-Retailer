@@ -160,6 +160,22 @@ This project is production-ready for **Render.com**:
 | `CLOUD_NAME` | Cloudinary cloud name |
 | `API_KEY` | Cloudinary API key |
 | `API_SECRET` | Cloudinary API secret |
+| `GOOGLE_CLIENT_ID` | Google OAuth web client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+
+<br/>
+
+### Google OAuth
+
+Create a Web application OAuth client in Google Cloud Console and add every callback URL used by the application as an exact **Authorized redirect URI**:
+
+```text
+http://127.0.0.1:8000/accounts/google/login/callback/
+http://localhost:8000/accounts/google/login/callback/
+https://haatify.onrender.com/accounts/google/login/callback/
+```
+
+Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the local `.env` file and in the production environment. The Google sign-in button is hidden when either value is missing.
 
 <br/>
 

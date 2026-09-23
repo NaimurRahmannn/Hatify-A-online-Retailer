@@ -1,4 +1,5 @@
 {% extends "base/base.html" %}
+{% load static socialaccount %}
 
 {% block start %}
 
@@ -252,6 +253,39 @@
     color: #bbb;
   }
 
+  /* Google authentication */
+  .google-auth-form {
+    margin: 0;
+  }
+  .google-auth-btn {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: #fff;
+    color: #2b2218;
+    border: 1.5px solid #ece6de;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  .google-auth-btn:hover {
+    background: #fdfcfa;
+    border-color: #B88646;
+  }
+  .google-auth-btn:focus-visible {
+    outline: 3px solid rgba(184, 134, 70, 0.28);
+    outline-offset: 2px;
+  }
+  .google-auth-btn img {
+    flex-shrink: 0;
+  }
+
   /* Footer link */
   .auth-footer-text {
     text-align: center;
@@ -379,6 +413,16 @@
       </form>
 
       <div class="auth-divider"><span>or</span></div>
+
+      {% if google_auth_enabled %}
+        <form method="post" action="{% provider_login_url 'google' process='login' %}" class="google-auth-form">
+          {% csrf_token %}
+          <button type="submit" class="google-auth-btn">
+            <img src="{% static 'images/logos/google_symbol.png' %}" alt="" width="20" height="20">
+            <span>Continue with Google</span>
+          </button>
+        </form>
+      {% endif %}
 
       <p class="auth-footer-text">
         Already have an account? <a href="{% url 'login' %}">Sign in here</a>
