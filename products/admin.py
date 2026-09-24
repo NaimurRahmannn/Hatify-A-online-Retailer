@@ -13,7 +13,21 @@ class ProductImageAdmin(admin.StackedInline):
     model =ProductImage
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['product_name', 'price']
+    list_display = ['product_name', 'category', 'price']
+    list_filter = ['category']
+    search_fields = ['product_name', 'product_description', 'embedding_description']
+    fieldsets = (
+        (None, {
+            'fields': ('product_name', 'slug', 'category', 'price', 'product_description')
+        }),
+        ('AI Semantic Search (Internal / Embedding only)', {
+            'fields': ('embedding_description',),
+            'description': 'Internal detailed description used exclusively for AI vector embeddings and semantic search. This field is NOT displayed to customers on the storefront.'
+        }),
+        ('Variants', {
+            'fields': ('color_variant', 'size_variant')
+        }),
+    )
     inlines = [ProductImageAdmin]
     filter_horizontal = ['size_variant', 'color_variant']
 

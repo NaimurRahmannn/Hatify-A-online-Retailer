@@ -16,6 +16,7 @@ from ai_search.models import ProductSearchDocument
 from ai_search.retrievers.keyword import keyword_search
 from ai_search.retrievers.vector import semantic_search
 from ai_search.query_understanding import analyze_query
+from ai_search.query_understanding.schemas import QueryAnalysis
 from ai_search.filters import apply_metadata_filters
 
 
@@ -94,6 +95,19 @@ def retrieve_products(
     phase_started = time.perf_counter()
     base_qs = ProductSearchDocument.objects.all()
     filtered_qs = apply_metadata_filters(base_qs, analysis)
+    
+    # If filtered_qs is empty because secondary metadata (like colors or sizes)
+    # was not tagged on the catalog, relax to category-only filtering so semantic
+    # vector search and keyword retrieval can still find relevant products.
+    if not filtered_qs.exists() and analysis and analysis.category:
+        relaxed_analysis = QueryAnalysis(
+            original_query=analysis.original_query,
+            category=analysis.category
+        )
+        relaxed_qs = apply_metadata_filters(base_qs, relaxed_analysis)
+        if relaxed_qs.exists():
+            filtered_qs = relaxed_qs
+
     filter_ms = _elapsed_ms(phase_started)
 
     # -----------------------------------------------------------------

@@ -57,6 +57,9 @@ def _build_document_data(product: Product) -> dict[str, Any]:
     description = normalize_text(product.product_description)
     if description.casefold() == name.casefold():
         description = ""
+    embedding_description = normalize_text(getattr(product, "embedding_description", "") or "")
+    if embedding_description.casefold() == name.casefold() or embedding_description.casefold() == description.casefold():
+        embedding_description = ""
 
     colors = unique_clean_values(
         variant.color_name for variant in product.color_variant.all()
@@ -85,6 +88,8 @@ def _build_document_data(product: Product) -> dict[str, Any]:
         semantic_sections.append(f"Brand:\n{brand}")
     if description:
         semantic_sections.append(f"Description:\n{description}")
+    if embedding_description:
+        semantic_sections.append(f"Search Details:\n{embedding_description}")
 
     attributes: list[str] = []
     if colors:

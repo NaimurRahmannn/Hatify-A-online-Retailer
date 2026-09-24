@@ -315,3 +315,43 @@ class DocumentSemanticHashTests(TestCase):
         emb.refresh_from_db()
         self.assertEqual(emb.status, EmbeddingStatus.READY)
         self.assertIsNotNone(emb.embedding)
+
+    def test_embedding_description_included_in_searchable_and_embedding_text(self):
+        product = make_product(
+            category=self.category,
+            product_name="Sky Casual Shirt",
+            product_description="Short user-facing blurb.",
+            embedding_description="Sky blue color lightweight summer breathable cotton shirt for men",
+        )
+        doc = ProductSearchDocument.objects.get(product=product)
+
+        self.assertIn("Description:\nShort user-facing blurb.", doc.searchable_text)
+        self.assertIn(
+            "Search Details:\nSky blue color lightweight summer breathable cotton shirt for men",
+            doc.searchable_text,
+        )
+        self.assertIn(
+            "Search Details:\nSky blue color lightweight summer breathable cotton shirt for men",
+            doc.embedding_text,
+        )
+
+    def test_embedding_description_change_invalidates_ready_embedding(self):
+        product = make_product(
+            category=self.category,
+            embedding_description="Initial semantic search description",
+        )
+        doc = product.search_document
+        emb = doc.embedding
+
+        emb.embedding = [0.1] * 768
+        emb.status = EmbeddingStatus.READY
+        emb.content_hash = doc.content_hash
+        emb.save()
+
+        product.embedding_description = "Updated semantic search description with more keywords"
+        product.save()
+
+        emb.refresh_from_db()
+        self.assertEqual(emb.status, EmbeddingStatus.PENDING)
+        self.assertIsNone(emb.embedding)
+

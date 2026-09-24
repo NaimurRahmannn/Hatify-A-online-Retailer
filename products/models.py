@@ -47,6 +47,11 @@ class Product(Basemodel):
     category=models.ForeignKey(Category,on_delete=models.CASCADE,related_name="products")
     price=models.DecimalField(max_digits=10, decimal_places=2)
     product_description=models.TextField()
+    embedding_description=models.TextField(
+        blank=True,
+        null=True,
+        help_text="Detailed semantic description used exclusively for AI search and embeddings. Not displayed to customers on the frontend."
+    )
     color_variant = models.ManyToManyField(ColorVariant , blank=True)
     size_variant = models.ManyToManyField(SizeVariant , blank=True)
     def save(self , *args , **kwargs):
