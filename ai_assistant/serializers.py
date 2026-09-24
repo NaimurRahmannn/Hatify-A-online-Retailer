@@ -75,11 +75,18 @@ def serialize_product(product) -> dict:
         }
 
     # ORM model instance (ProductSearchDocument)
-    metadata = doc.metadata if isinstance(doc.metadata, dict) else {}
+    metadata = dict(doc.metadata) if isinstance(doc.metadata, dict) else {}
     product = getattr(doc, "product", None)
     product_id = _public_scalar(getattr(product, "pk", None))
     product_name = _public_scalar(getattr(product, "product_name", "")) or ""
     product_slug = _public_scalar(getattr(product, "slug", "")) or ""
+    product_desc = getattr(product, "product_description", "") or ""
+    product_emb_desc = getattr(product, "embedding_description", "") or ""
+    if product_desc and not metadata.get("description"):
+        metadata["description"] = product_desc
+    if product_emb_desc and not metadata.get("search_details"):
+        metadata["search_details"] = product_emb_desc
+
     return {
         "id": _first_present(product_id, metadata.get("product_id"), doc.pk),
         "name": _first_present(getattr(doc, "name", ""), product_name) or "",

@@ -1,6 +1,6 @@
 from ai_assistant.serializers import serialize_products
 
-def build_product_context(products, max_products: int = 5) -> str:
+def build_product_context(products, max_products: int = 6) -> str:
     """
     Convert retrieved products into LLM-friendly context.
     Limits to top N products to save tokens and keep context concise.
@@ -26,6 +26,7 @@ def build_product_context(products, max_products: int = 5) -> str:
         occasion = metadata.get("occasion")
         season = metadata.get("season")
         gender = metadata.get("gender")
+        category_type = metadata.get("category_type")
         fit = metadata.get("fit")
         rating = metadata.get("rating")
         in_stock = metadata.get("in_stock")
@@ -37,6 +38,9 @@ def build_product_context(products, max_products: int = 5) -> str:
         product_str = f"Product {i}:\n"
         product_str += f"Name: {name}\n"
         product_str += f"Category: {category}\n"
+        dept = category_type or (gender.capitalize() if gender else None)
+        if dept:
+            product_str += f"Department: {dept}\n"
         product_str += f"Price: {price} BDT\n"
         url = p.get("url")
         if url:
@@ -50,11 +54,21 @@ def build_product_context(products, max_products: int = 5) -> str:
         if style: product_str += f"Style: {style}\n"
         if occasion: product_str += f"Occasion: {occasion}\n"
         if season: product_str += f"Season: {season}\n"
-        if gender: product_str += f"Gender: {gender}\n"
         if fit: product_str += f"Fit: {fit}\n"
         if rating is not None: product_str += f"Rating: {rating}/5\n"
         if in_stock is not None: product_str += f"In Stock: {'Yes' if in_stock else 'No'}\n"
-        if description: product_str += f"Description: {description}\n"
+        description = metadata.get("description") or ""
+        search_details = metadata.get("search_details") or ""
+        combined_desc = []
+        if description:
+            combined_desc.append(description)
+        if search_details and search_details.casefold() != description.casefold():
+            combined_desc.append(search_details)
+        full_desc = " | ".join(combined_desc)
+        if full_desc:
+            if len(full_desc) > 300:
+                full_desc = full_desc[:297] + "..."
+            product_str += f"Description: {full_desc}\n"
         
         context_parts.append(product_str)
 

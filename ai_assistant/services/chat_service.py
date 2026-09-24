@@ -40,7 +40,7 @@ def process_chat_message(query: str, conversation: Conversation) -> dict:
         try:
             # Pass the pre-computed analysis so retrieval skips its own.
             retrieval_results = retrieve_products(
-                context_aware_query, limit=5, analysis=analysis
+                context_aware_query, limit=6, analysis=analysis
             )
         except Exception as e:
             logger.error(f"Retrieval failed: {e}", exc_info=True)

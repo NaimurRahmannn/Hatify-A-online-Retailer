@@ -358,3 +358,82 @@ test("Escape closes the panel, updates aria state, and returns focus", async () 
   assert.equal(frontend.elements["ai-chat-window"].classList.contains("is-open"), false);
   assert.equal(frontend.elements["ai-chat-toggle"].focusCalls, 1);
 });
+
+test("divided collections and filter chips are rendered when mixed products are returned", async () => {
+  const frontend = createFrontend({
+    includeCloseButton: true,
+    responses: [
+      {
+        status: 200,
+        body: {
+          conversation_id: "mixed-conv",
+          answer: "Here are options for both men and women.",
+          products: [
+            {
+              id: "1",
+              name: "Men Jacket",
+              price: 3000,
+              category: "Jackets",
+              image: "/media/men-jacket.jpg",
+              url: "/product/men-jacket/",
+              metadata: { category_type: "Men", gender: "men" },
+            },
+            {
+              id: "2",
+              name: "Women Jacket",
+              price: 3500,
+              category: "Jackets",
+              image: "/media/women-jacket.jpg",
+              url: "/product/women-jacket/",
+              metadata: { category_type: "Women", gender: "women" },
+            },
+          ],
+          metadata: {},
+        },
+      },
+      {
+        status: 200,
+        body: {
+          conversation_id: "mixed-conv",
+          answer: "Here are only men's items.",
+          products: [
+            {
+              id: "1",
+              name: "Men Jacket",
+              price: 3000,
+              category: "Jackets",
+              image: "/media/men-jacket.jpg",
+              url: "/product/men-jacket/",
+              metadata: { category_type: "Men", gender: "men" },
+            },
+          ],
+          metadata: {},
+        },
+      },
+    ],
+  });
+  frontend.elements["ai-chat-input"].value = "Show me jackets";
+  vm.runInNewContext(assistantScript, frontend.context);
+
+  await frontend.elements["ai-chat-form"].dispatch("submit");
+
+  const dividedWrapper = frontend.createdElements.find(
+    (el) => el.className === "ai-divided-collection"
+  );
+  assert.ok(dividedWrapper, "Should render ai-divided-collection container");
+
+  const filterChips = frontend.createdElements.filter(
+    (el) => el.tagName === "BUTTON" && el.className === "ai-filter-chip"
+  );
+  assert.equal(filterChips.length, 2, "Should render 2 filter chips (Men Only, Women Only)");
+
+  // Click the 'Men Only' chip to verify follow-up query submission
+  await filterChips[0].dispatch("click");
+
+  assert.equal(frontend.requests.length, 2);
+  assert.deepEqual(JSON.parse(frontend.requests[1].options.body), {
+    message: "Show me only men's items",
+    conversation_id: "mixed-conv",
+  });
+});
+

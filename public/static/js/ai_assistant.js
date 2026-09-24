@@ -195,67 +195,156 @@
             this.scrollToBottom();
         }
 
-        renderProducts(products, conversationId) {
-            if (!Array.isArray(products) || products.length === 0) return;
-
-            const row = document.createElement('div');
-            row.className = 'ai-products-row';
-
-            products.forEach((product) => {
-                const card = document.createElement('a');
-                const targetUrl = product.url || '';
-                card.href = targetUrl || '#';
-                card.className = 'ai-product-card';
-                if (targetUrl) {
-                    card.setAttribute('href', targetUrl);
-                }
-                card.addEventListener('click', (event) => {
-                    window.dispatchEvent(new window.CustomEvent('AI_PRODUCT_CLICK', {
-                        detail: {
-                            product_id: product.id,
-                            conversation_id: conversationId,
-                            product_url: targetUrl
-                        }
-                    }));
-                    if (!targetUrl) {
-                        event.preventDefault();
+        createProductCard(product, conversationId) {
+            const card = document.createElement('a');
+            const targetUrl = product.url || '';
+            card.href = targetUrl || '#';
+            card.className = 'ai-product-card';
+            if (targetUrl) {
+                card.setAttribute('href', targetUrl);
+            }
+            card.addEventListener('click', (event) => {
+                window.dispatchEvent(new window.CustomEvent('AI_PRODUCT_CLICK', {
+                    detail: {
+                        product_id: product.id,
+                        conversation_id: conversationId,
+                        product_url: targetUrl
                     }
-                });
-
-                const image = document.createElement('img');
-                image.className = 'ai-product-card-img';
-                image.src = product.image || FALLBACK_IMAGE;
-                image.alt = product.name || 'Haatify product';
-                image.addEventListener('error', () => {
-                    if (image.src !== FALLBACK_IMAGE) image.src = FALLBACK_IMAGE;
-                });
-
-                const body = document.createElement('div');
-                body.className = 'ai-product-card-body';
-
-                const name = document.createElement('h5');
-                name.className = 'ai-product-card-name';
-                name.textContent = product.name || 'Product';
-                name.title = product.name || 'Product';
-
-                const category = document.createElement('p');
-                category.className = 'ai-product-card-category';
-                category.textContent = product.category || 'Apparel';
-
-                const price = document.createElement('div');
-                price.className = 'ai-product-card-price';
-                const hasPrice = product.price !== null && product.price !== undefined && product.price !== '';
-                price.textContent = hasPrice ? `BDT ${product.price}` : 'Price unlisted';
-
-                body.appendChild(name);
-                body.appendChild(category);
-                body.appendChild(price);
-                card.appendChild(image);
-                card.appendChild(body);
-                row.appendChild(card);
+                }));
+                if (!targetUrl) {
+                    event.preventDefault();
+                }
             });
 
-            this.elements.messages.insertBefore(row, this.elements.typing);
+            const image = document.createElement('img');
+            image.className = 'ai-product-card-img';
+            image.src = product.image || FALLBACK_IMAGE;
+            image.alt = product.name || 'Haatify product';
+            image.addEventListener('error', () => {
+                if (image.src !== FALLBACK_IMAGE) image.src = FALLBACK_IMAGE;
+            });
+
+            const body = document.createElement('div');
+            body.className = 'ai-product-card-body';
+
+            const name = document.createElement('h5');
+            name.className = 'ai-product-card-name';
+            name.textContent = product.name || 'Product';
+            name.title = product.name || 'Product';
+
+            const category = document.createElement('p');
+            category.className = 'ai-product-card-category';
+            category.textContent = product.category || 'Apparel';
+
+            const price = document.createElement('div');
+            price.className = 'ai-product-card-price';
+            const hasPrice = product.price !== null && product.price !== undefined && product.price !== '';
+            price.textContent = hasPrice ? `BDT ${product.price}` : 'Price unlisted';
+
+            body.appendChild(name);
+            body.appendChild(category);
+            body.appendChild(price);
+            card.appendChild(image);
+            card.appendChild(body);
+            return card;
+        }
+
+        renderProducts(products, conversationId, onChipClick) {
+            if (!Array.isArray(products) || products.length === 0) return;
+
+            const classifyGender = (p) => {
+                const meta = p.metadata || {};
+                const g = String(meta.category_type || meta.gender || '').trim().toLowerCase();
+                if (g.includes('women') || g === 'female' || g === 'w') return 'women';
+                if (g.includes('men') || g === 'male' || g === 'm') return 'men';
+                return 'other';
+            };
+
+            const menProducts = [];
+            const womenProducts = [];
+            const otherProducts = [];
+
+            products.forEach((p) => {
+                const g = classifyGender(p);
+                if (g === 'men') menProducts.push(p);
+                else if (g === 'women') womenProducts.push(p);
+                else otherProducts.push(p);
+            });
+
+            // If we have both Men's and Women's products, divide into distinct visual collections
+            if (menProducts.length > 0 && womenProducts.length > 0) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'ai-divided-collection';
+
+                // --- Men's Collection ---
+                const menHeader = document.createElement('div');
+                menHeader.className = 'ai-collection-header';
+                menHeader.innerHTML = '<span class="ai-collection-badge ai-badge-men">👔 Men\'s Collection</span>';
+                wrapper.appendChild(menHeader);
+
+                const menRow = document.createElement('div');
+                menRow.className = 'ai-products-row';
+                menProducts.forEach((p) => menRow.appendChild(this.createProductCard(p, conversationId)));
+                wrapper.appendChild(menRow);
+
+                // --- Women's Collection ---
+                const womenHeader = document.createElement('div');
+                womenHeader.className = 'ai-collection-header';
+                womenHeader.innerHTML = '<span class="ai-collection-badge ai-badge-women">👗 Women\'s Collection</span>';
+                wrapper.appendChild(womenHeader);
+
+                const womenRow = document.createElement('div');
+                womenRow.className = 'ai-products-row';
+                womenProducts.forEach((p) => womenRow.appendChild(this.createProductCard(p, conversationId)));
+                wrapper.appendChild(womenRow);
+
+                // Any additional items
+                if (otherProducts.length > 0) {
+                    const otherRow = document.createElement('div');
+                    otherRow.className = 'ai-products-row';
+                    otherProducts.forEach((p) => otherRow.appendChild(this.createProductCard(p, conversationId)));
+                    wrapper.appendChild(otherRow);
+                }
+
+                // --- Quick Filter Suggestion Chips ---
+                const chipsRow = document.createElement('div');
+                chipsRow.className = 'ai-chips-wrapper';
+
+                const chipTitle = document.createElement('span');
+                chipTitle.className = 'ai-chips-label';
+                chipTitle.textContent = 'Filter collection:';
+                chipsRow.appendChild(chipTitle);
+
+                const menChip = document.createElement('button');
+                menChip.type = 'button';
+                menChip.className = 'ai-filter-chip';
+                menChip.textContent = '👔 Men Only';
+                menChip.addEventListener('click', () => {
+                    if (typeof onChipClick === 'function') onChipClick('Show me only men\'s items');
+                });
+                chipsRow.appendChild(menChip);
+
+                const womenChip = document.createElement('button');
+                womenChip.type = 'button';
+                womenChip.className = 'ai-filter-chip';
+                womenChip.textContent = '👗 Women Only';
+                womenChip.addEventListener('click', () => {
+                    if (typeof onChipClick === 'function') onChipClick('Show me only women\'s items');
+                });
+                chipsRow.appendChild(womenChip);
+
+                wrapper.appendChild(chipsRow);
+
+                this.elements.messages.insertBefore(wrapper, this.elements.typing);
+            } else {
+                const row = document.createElement('div');
+                row.className = 'ai-products-row';
+                products.forEach((product) => {
+                    row.appendChild(this.createProductCard(product, conversationId));
+                });
+                this.elements.messages.insertBefore(row, this.elements.typing);
+            }
+
             this.scrollToBottom();
         }
     }
@@ -318,11 +407,10 @@
             if (event.key === 'Escape' && ui.isOpen()) ui.close();
         });
 
-        elements.form.addEventListener('submit', async (event) => {
-            event.preventDefault();
+        async function handleSendMessage(rawText) {
             if (isProcessing) return;
 
-            const message = elements.input.value.trim();
+            const message = String(rawText || '').trim();
             if (!message) return;
 
             isProcessing = true;
@@ -342,7 +430,9 @@
 
                 state.save(data.conversation_id);
                 ui.renderMessage(data.answer || 'I could not create an answer.', 'bot', false);
-                ui.renderProducts(data.products, state.conversationId);
+                ui.renderProducts(data.products, state.conversationId, (chipText) => {
+                    handleSendMessage(chipText);
+                });
             } catch (error) {
                 console.error('AI Chat Error:', error);
                 const messageText = error instanceof ChatApiError
@@ -353,6 +443,11 @@
                 isProcessing = false;
                 ui.setLoading(false);
             }
+        }
+
+        elements.form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await handleSendMessage(elements.input.value);
         });
     }
 
