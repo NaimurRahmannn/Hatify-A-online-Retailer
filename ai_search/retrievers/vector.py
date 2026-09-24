@@ -15,9 +15,12 @@ from ai_search.embeddings import generate_embedding
 from ai_search.models import EmbeddingStatus, ProductSearchDocument
 
 
+from django.db.models import QuerySet
+
 def semantic_search(
     query: str,
     limit: int = 10,
+    queryset: QuerySet[ProductSearchDocument] | None = None,
 ) -> list[ProductSearchDocument]:
     """Return search documents ranked by cosine similarity to the query.
 
@@ -33,8 +36,10 @@ def semantic_search(
 
     query_vector = generate_embedding(query, purpose="query")
 
+    base_qs = queryset if queryset is not None else ProductSearchDocument.objects.all()
+
     results = (
-        ProductSearchDocument.objects.filter(
+        base_qs.filter(
             embedding__status=EmbeddingStatus.READY,
             embedding__embedding__isnull=False,
             embedding__model_name=model_name,

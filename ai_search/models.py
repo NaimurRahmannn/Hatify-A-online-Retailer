@@ -82,3 +82,32 @@ class ProductEmbedding(models.Model):
     def __str__(self) -> str:
         product_name = self.product_document.product.product_name
         return f"Embedding ({self.model_name}) for {product_name}"
+
+
+class SearchQueryLog(models.Model):
+    """
+    Log of user search queries for analytics and ranking improvements.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="User who performed the search, if authenticated.",
+    )
+    original_query = models.CharField(max_length=500, help_text="The raw query string entered by the user.")
+    extracted_filters = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Structured intent and filters extracted from the query.",
+    )
+    result_count = models.IntegerField(default=0, help_text="Number of results returned.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Search Query Log"
+        verbose_name_plural = "Search Query Logs"
+
+    def __str__(self) -> str:
+        return f"Query: {self.original_query} ({self.created_at})"

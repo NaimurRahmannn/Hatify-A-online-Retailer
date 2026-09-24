@@ -44,6 +44,13 @@ class HybridRankingTests(TestCase):
         self.p1 = make_product(product_name="Black Hoodie")
         self.p2 = make_product(product_name="White T-Shirt")
         self.p3 = make_product(product_name="Winter Jacket")
+        
+        # Mock QueryAnalyzer globally for all tests in this class
+        patcher = patch("ai_search.services.retrieval_service.QueryAnalyzer.analyze")
+        self.mock_analyze = patcher.start()
+        from ai_search.query_understanding import QueryAnalysis
+        self.mock_analyze.return_value = QueryAnalysis(original_query="test", intent="product_search")
+        self.addCleanup(patcher.stop)
 
     @patch("ai_search.services.retrieval_service.semantic_search")
     @patch("ai_search.services.retrieval_service.keyword_search")
@@ -61,7 +68,7 @@ class HybridRankingTests(TestCase):
         doc1_sem.semantic_score = 0.8
         mock_sem.return_value = [doc1_sem]
 
-        results = retrieve_products("test query")
+        results = retrieve_products("test query")["results"]
 
         # doc1 should be ranked first (both keyword + semantic).
         self.assertTrue(len(results) >= 1)
@@ -78,7 +85,7 @@ class HybridRankingTests(TestCase):
         mock_kw.return_value = [doc1]
         mock_sem.return_value = []
 
-        results = retrieve_products("test")
+        results = retrieve_products("test")["results"]
 
         self.assertEqual(len(results), 1)
         # With renormalization, a single-source match gets full score.
@@ -93,7 +100,7 @@ class HybridRankingTests(TestCase):
         mock_kw.return_value = []
         mock_sem.return_value = [doc1]
 
-        results = retrieve_products("test")
+        results = retrieve_products("test")["results"]
 
         self.assertEqual(len(results), 1)
         self.assertAlmostEqual(results[0].final_score, 1.0, places=2)
@@ -104,7 +111,7 @@ class HybridRankingTests(TestCase):
         mock_kw.return_value = []
         mock_sem.return_value = []
 
-        results = retrieve_products("xyznonexistent")
+        results = retrieve_products("xyznonexistent")["results"]
         self.assertEqual(results, [])
 
     @patch(
@@ -118,7 +125,7 @@ class HybridRankingTests(TestCase):
         mock_kw.return_value = [doc1]
 
         with self.assertLogs("ai_search.services.retrieval_service", level="WARNING"):
-            results = retrieve_products("test query")
+            results = retrieve_products("test query")["results"]
 
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].semantic_score, 0.0)
@@ -136,7 +143,7 @@ class HybridRankingTests(TestCase):
         mock_kw.return_value = [doc2, doc3, doc1]
         mock_sem.return_value = []
 
-        results = retrieve_products("test")
+        results = retrieve_products("test")["results"]
 
         scores = [r.final_score for r in results]
         self.assertEqual(scores, sorted(scores, reverse=True))

@@ -28,14 +28,17 @@ class SearchAPITests(TestCase):
     @patch("ai_search.views.retrieve_products")
     def test_successful_search(self, mock_retrieve):
         doc = self.product.search_document
-        mock_retrieve.return_value = [
-            SearchResult(
-                document=doc,
-                keyword_score=0.85,
-                semantic_score=0.91,
-                final_score=0.88,
-            ),
-        ]
+        mock_retrieve.return_value = {
+            "analysis": {"category": "hoodie", "color": "black"},
+            "results": [
+                SearchResult(
+                    document=doc,
+                    keyword_score=0.85,
+                    semantic_score=0.91,
+                    final_score=0.88,
+                ),
+            ]
+        }
 
         response = self._post({"query": "black hoodie"})
 
@@ -52,7 +55,7 @@ class SearchAPITests(TestCase):
 
     @patch("ai_search.views.retrieve_products")
     def test_empty_results(self, mock_retrieve):
-        mock_retrieve.return_value = []
+        mock_retrieve.return_value = {"analysis": {}, "results": []}
 
         response = self._post({"query": "nonexistent product"})
 
@@ -97,7 +100,7 @@ class SearchAPITests(TestCase):
 
     @patch("ai_search.views.retrieve_products")
     def test_valid_limit_accepted(self, mock_retrieve):
-        mock_retrieve.return_value = []
+        mock_retrieve.return_value = {"analysis": {}, "results": []}
 
         response = self._post({"query": "test", "limit": 5})
         self.assertEqual(response.status_code, 200)
@@ -122,9 +125,12 @@ class SearchAPITests(TestCase):
     @patch("ai_search.views.retrieve_products")
     def test_price_serialized_as_decimal_string(self, mock_retrieve):
         doc = self.product.search_document
-        mock_retrieve.return_value = [
-            SearchResult(document=doc, final_score=0.9),
-        ]
+        mock_retrieve.return_value = {
+            "analysis": {},
+            "results": [
+                SearchResult(document=doc, final_score=0.9),
+            ]
+        }
 
         response = self._post({"query": "test"})
         result = response.json()["results"][0]
@@ -136,9 +142,12 @@ class SearchAPITests(TestCase):
     @patch("ai_search.views.retrieve_products")
     def test_product_id_is_string(self, mock_retrieve):
         doc = self.product.search_document
-        mock_retrieve.return_value = [
-            SearchResult(document=doc, final_score=0.9),
-        ]
+        mock_retrieve.return_value = {
+            "analysis": {},
+            "results": [
+                SearchResult(document=doc, final_score=0.9),
+            ]
+        }
 
         response = self._post({"query": "test"})
         result = response.json()["results"][0]

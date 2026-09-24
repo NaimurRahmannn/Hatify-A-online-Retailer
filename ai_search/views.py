@@ -11,6 +11,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
+from ai_search.models import SearchQueryLog
 from ai_search.services.retrieval_service import retrieve_products
 
 
@@ -100,7 +101,7 @@ def search_view(request):
     # Serialize response
     # ------------------------------------------------------------------
     product_results = []
-    for result in results:
+    for result in results["results"]:
         doc = result.document
         product = doc.product
         product_results.append(
@@ -114,4 +115,17 @@ def search_view(request):
             }
         )
 
-    return JsonResponse({"results": product_results})
+    # ------------------------------------------------------------------
+    # Log query
+    # ------------------------------------------------------------------
+    SearchQueryLog.objects.create(
+        user=request.user if request.user.is_authenticated else None,
+        original_query=query,
+        extracted_filters=results["analysis"],
+        result_count=len(product_results),
+    )
+
+    return JsonResponse({
+        "analysis": results["analysis"],
+        "results": product_results
+    })

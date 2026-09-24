@@ -14,6 +14,8 @@ from django.conf import settings
 from ai_search.models import ProductSearchDocument
 from ai_search.retrievers.keyword import keyword_search
 from ai_search.retrievers.vector import semantic_search
+from ai_search.query_understanding import QueryAnalyzer
+from ai_search.filters import apply_metadata_filters
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +46,7 @@ def _normalize_scores(
 def retrieve_products(
     query: str,
     limit: int | None = None,
-) -> list[SearchResult]:
+) -> dict:
     """Run hybrid retrieval and return ranked product results.
 
     If semantic search fails (e.g. Gemini outage), the service degrades
@@ -60,9 +62,18 @@ def retrieve_products(
     candidate_limit = effective_limit * 3
 
     # -----------------------------------------------------------------
+    # Query Understanding and Filtering
+    # -----------------------------------------------------------------
+    analyzer = QueryAnalyzer()
+    analysis = analyzer.analyze(query)
+    
+    base_qs = ProductSearchDocument.objects.all()
+    filtered_qs = apply_metadata_filters(base_qs, analysis)
+
+    # -----------------------------------------------------------------
     # Keyword retrieval
     # -----------------------------------------------------------------
-    keyword_docs = keyword_search(query, limit=candidate_limit)
+    keyword_docs = keyword_search(query, limit=candidate_limit, queryset=filtered_qs)
     keyword_scores: dict[int, float] = {
         doc.pk: doc.keyword_score for doc in keyword_docs
     }
@@ -73,7 +84,7 @@ def retrieve_products(
     semantic_scores: dict[int, float] = {}
     semantic_docs_map: dict[int, ProductSearchDocument] = {}
     try:
-        semantic_docs = semantic_search(query, limit=candidate_limit)
+        semantic_docs = semantic_search(query, limit=candidate_limit, queryset=filtered_qs)
         semantic_scores = {
             doc.pk: max(0.0, doc.semantic_score) for doc in semantic_docs
         }
@@ -95,7 +106,10 @@ def retrieve_products(
     # -----------------------------------------------------------------
     all_doc_ids = set(norm_keyword) | set(norm_semantic)
     if not all_doc_ids:
-        return []
+        return {
+            "analysis": analysis.model_dump(exclude_none=True),
+            "results": [],
+        }
 
     # Build a map of document objects (keyword docs are already loaded)
     docs_map: dict[int, ProductSearchDocument] = {
@@ -154,4 +168,7 @@ def retrieve_products(
         )
     )
 
-    return results[:effective_limit]
+    return {
+        "analysis": analysis.model_dump(exclude_none=True),
+        "results": results[:effective_limit],
+    }

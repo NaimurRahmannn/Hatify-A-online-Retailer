@@ -12,9 +12,12 @@ from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from ai_search.models import ProductSearchDocument
 
 
+from django.db.models import QuerySet
+
 def keyword_search(
     query: str,
     limit: int = 10,
+    queryset: QuerySet[ProductSearchDocument] | None = None,
 ) -> list[ProductSearchDocument]:
     """Return search documents ranked by PostgreSQL full-text relevance.
 
@@ -24,8 +27,10 @@ def keyword_search(
     search_vector = SearchVector("searchable_text", config="simple")
     search_query = SearchQuery(query, config="simple", search_type="websearch")
 
+    base_qs = queryset if queryset is not None else ProductSearchDocument.objects.all()
+
     results = (
-        ProductSearchDocument.objects.annotate(
+        base_qs.annotate(
             keyword_score=SearchRank(search_vector, search_query),
         )
         .filter(keyword_score__gt=0)

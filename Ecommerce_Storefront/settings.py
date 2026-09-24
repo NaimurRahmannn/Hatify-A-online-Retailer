@@ -83,6 +83,8 @@ AI_SEARCH = {
         os.environ.get("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2"),
     ),
     "EMBEDDING_DIMENSION": AI_SEARCH_EMBEDDING_DIMENSION,
+    "QUERY_PROVIDER": os.environ.get("AI_QUERY_PROVIDER", "gemini"),
+    "QUERY_MODEL": os.environ.get("AI_QUERY_MODEL", "gemini-3.6-flash"),
     "KEYWORD_WEIGHT": 0.5,
     "SEMANTIC_WEIGHT": 0.5,
     "DEFAULT_LIMIT": 10,
