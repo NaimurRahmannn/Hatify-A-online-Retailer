@@ -49,7 +49,7 @@ class ProductDocumentTests(TestCase):
         self.assertEqual(doc.metadata["category_type"], "Men")
         self.assertEqual(doc.metadata["gender"], "men")
         self.assertEqual(doc.metadata["price"], 100.0)
-        self.assertEqual(doc.metadata["colors"], ["Red"])
+        self.assertEqual(doc.metadata["colors"], ["red"])
         self.assertEqual(doc.metadata["sizes"], ["L"])
         for field in (
             "brand",
@@ -61,6 +61,18 @@ class ProductDocumentTests(TestCase):
             "fit",
         ):
             self.assertIsNone(doc.metadata[field])
+
+    def test_filter_metadata_is_canonical_without_changing_display_text(self):
+        product = make_product(category=self.category)
+        product.color_variant.add(make_color("Black"))
+        product.size_variant.add(make_size("xl"))
+
+        doc = ProductSearchDocument.objects.get(product=product)
+
+        self.assertEqual(doc.metadata["colors"], ["black"])
+        self.assertEqual(doc.metadata["sizes"], ["XL"])
+        self.assertIn("Color: Black", doc.searchable_text)
+        self.assertIn("Size: xl", doc.searchable_text)
 
     def test_product_update_signal(self):
         product = make_product(

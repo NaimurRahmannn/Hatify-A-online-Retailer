@@ -7,6 +7,7 @@ their scores are normalized before combining with configurable weights.
 """
 
 import logging
+import time
 from dataclasses import dataclass, field
 
 from django.conf import settings
@@ -14,11 +15,16 @@ from django.conf import settings
 from ai_search.models import ProductSearchDocument
 from ai_search.retrievers.keyword import keyword_search
 from ai_search.retrievers.vector import semantic_search
-from ai_search.query_understanding import QueryAnalyzer
+from ai_search.query_understanding import analyze_query
 from ai_search.filters import apply_metadata_filters
 
 
 logger = logging.getLogger(__name__)
+
+
+def _elapsed_ms(start: float) -> float:
+    """Return a non-negative elapsed duration rounded for telemetry."""
+    return round(max(0.0, (time.perf_counter() - start) * 1000), 3)
 
 
 @dataclass
@@ -52,6 +58,7 @@ def retrieve_products(
     If semantic search fails (e.g. Gemini outage), the service degrades
     gracefully to keyword-only results.
     """
+    total_started = time.perf_counter()
     config = getattr(settings, "AI_SEARCH", {})
     effective_limit = limit or config.get("DEFAULT_LIMIT", 10)
     keyword_weight = config.get("KEYWORD_WEIGHT", 0.5)
@@ -64,25 +71,32 @@ def retrieve_products(
     # -----------------------------------------------------------------
     # Query Understanding and Filtering
     # -----------------------------------------------------------------
-    analyzer = QueryAnalyzer()
-    analysis = analyzer.analyze(query)
-    
+    phase_started = time.perf_counter()
+    analysis_result = analyze_query(query)
+    analysis = analysis_result.analysis
+    analysis_ms = _elapsed_ms(phase_started)
+
+    phase_started = time.perf_counter()
     base_qs = ProductSearchDocument.objects.all()
     filtered_qs = apply_metadata_filters(base_qs, analysis)
+    filter_ms = _elapsed_ms(phase_started)
 
     # -----------------------------------------------------------------
     # Keyword retrieval
     # -----------------------------------------------------------------
+    phase_started = time.perf_counter()
     keyword_docs = keyword_search(query, limit=candidate_limit, queryset=filtered_qs)
     keyword_scores: dict[int, float] = {
         doc.pk: doc.keyword_score for doc in keyword_docs
     }
+    keyword_ms = _elapsed_ms(phase_started)
 
     # -----------------------------------------------------------------
     # Semantic retrieval (degrades gracefully on failure)
     # -----------------------------------------------------------------
     semantic_scores: dict[int, float] = {}
     semantic_docs_map: dict[int, ProductSearchDocument] = {}
+    phase_started = time.perf_counter()
     try:
         semantic_docs = semantic_search(query, limit=candidate_limit, queryset=filtered_qs)
         semantic_scores = {
@@ -94,10 +108,12 @@ def retrieve_products(
             "Semantic search failed for query — falling back to keyword-only",
             exc_info=True,
         )
+    semantic_ms = _elapsed_ms(phase_started)
 
     # -----------------------------------------------------------------
     # Normalize scores independently
     # -----------------------------------------------------------------
+    phase_started = time.perf_counter()
     norm_keyword = _normalize_scores(keyword_scores)
     norm_semantic = _normalize_scores(semantic_scores)
 
@@ -105,12 +121,6 @@ def retrieve_products(
     # Collect all candidate document IDs
     # -----------------------------------------------------------------
     all_doc_ids = set(norm_keyword) | set(norm_semantic)
-    if not all_doc_ids:
-        return {
-            "analysis": analysis.model_dump(exclude_none=True),
-            "results": [],
-        }
-
     # Build a map of document objects (keyword docs are already loaded)
     docs_map: dict[int, ProductSearchDocument] = {
         doc.pk: doc for doc in keyword_docs
@@ -168,7 +178,20 @@ def retrieve_products(
         )
     )
 
+    ranked_results = results[:effective_limit]
+    ranking_ms = _elapsed_ms(phase_started)
+    timings = {
+        "analysis_ms": analysis_ms,
+        "filter_ms": filter_ms,
+        "keyword_ms": keyword_ms,
+        "semantic_ms": semantic_ms,
+        "ranking_ms": ranking_ms,
+        "total_ms": _elapsed_ms(total_started),
+    }
+
     return {
         "analysis": analysis.model_dump(exclude_none=True),
-        "results": results[:effective_limit],
+        "results": ranked_results,
+        "cache_hit": analysis_result.cache_hit,
+        "timings": timings,
     }

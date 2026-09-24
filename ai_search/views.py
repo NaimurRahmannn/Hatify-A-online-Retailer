@@ -6,16 +6,26 @@ Provides the ``POST /api/ai-search/`` endpoint for hybrid product retrieval.
 
 import json
 import logging
+import time
 
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from ai_search.models import SearchQueryLog
+from ai_search.query_understanding import normalize_query
 from ai_search.services.retrieval_service import retrieve_products
 
 
 logger = logging.getLogger(__name__)
+TIMING_KEYS = (
+    "analysis_ms",
+    "filter_ms",
+    "keyword_ms",
+    "semantic_ms",
+    "ranking_ms",
+    "total_ms",
+)
 
 
 @require_POST
@@ -88,6 +98,7 @@ def search_view(request):
     # ------------------------------------------------------------------
     # Execute hybrid retrieval
     # ------------------------------------------------------------------
+    request_started = time.perf_counter()
     try:
         results = retrieve_products(query, limit=limit)
     except Exception:
@@ -118,12 +129,28 @@ def search_view(request):
     # ------------------------------------------------------------------
     # Log query
     # ------------------------------------------------------------------
-    SearchQueryLog.objects.create(
-        user=request.user if request.user.is_authenticated else None,
-        original_query=query,
-        extracted_filters=results["analysis"],
-        result_count=len(product_results),
+    raw_timings = results.get("timings", {})
+    timings = {
+        key: max(0.0, float(raw_timings.get(key, 0.0)))
+        for key in TIMING_KEYS
+    }
+    timings["total_ms"] = round(
+        max(0.0, (time.perf_counter() - request_started) * 1000),
+        3,
     )
+
+    try:
+        SearchQueryLog.objects.create(
+            query=query,
+            normalized_query=normalize_query(query),
+            analysis=results["analysis"],
+            result_count=len(product_results),
+            execution_time_ms=timings["total_ms"],
+            cache_hit=bool(results.get("cache_hit", False)),
+            timings=timings,
+        )
+    except Exception:
+        logger.exception("Unable to persist AI search analytics")
 
     return JsonResponse({
         "analysis": results["analysis"],

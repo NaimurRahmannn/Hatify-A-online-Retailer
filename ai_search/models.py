@@ -26,12 +26,16 @@ class ProductSearchDocument(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = [
-            GinIndex(
-                SearchVector("searchable_text", config="simple"),
-                name="search_doc_fts_gin",
-            ),
-        ]
+        indexes = (
+            [
+                GinIndex(
+                    SearchVector("searchable_text", config="simple"),
+                    name="search_doc_fts_gin",
+                ),
+            ]
+            if getattr(settings, "AI_SEARCH_ENABLE_POSTGRES_INDEXES", True)
+            else []
+        )
 
     def __str__(self) -> str:
         return f"Search Doc for {self.product.product_name}"
@@ -69,15 +73,19 @@ class ProductEmbedding(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = [
-            HnswIndex(
-                name="embedding_hnsw_cosine",
-                fields=["embedding"],
-                m=16,
-                ef_construction=64,
-                opclasses=["vector_cosine_ops"],
-            ),
-        ]
+        indexes = (
+            [
+                HnswIndex(
+                    name="embedding_hnsw_cosine",
+                    fields=["embedding"],
+                    m=16,
+                    ef_construction=64,
+                    opclasses=["vector_cosine_ops"],
+                ),
+            ]
+            if getattr(settings, "AI_SEARCH_ENABLE_POSTGRES_INDEXES", True)
+            else []
+        )
 
     def __str__(self) -> str:
         product_name = self.product_document.product.product_name
@@ -88,20 +96,37 @@ class SearchQueryLog(models.Model):
     """
     Log of user search queries for analytics and ranking improvements.
     """
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="User who performed the search, if authenticated.",
+    query = models.CharField(
+        max_length=500,
+        help_text="The validated search query.",
     )
-    original_query = models.CharField(max_length=500, help_text="The raw query string entered by the user.")
-    extracted_filters = models.JSONField(
+    normalized_query = models.CharField(
+        max_length=500,
+        db_index=True,
+        help_text="Canonical query used for analytics and cache identity.",
+    )
+    analysis = models.JSONField(
         default=dict,
         blank=True,
         help_text="Structured intent and filters extracted from the query.",
     )
-    result_count = models.IntegerField(default=0, help_text="Number of results returned.")
+    result_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of results returned.",
+    )
+    execution_time_ms = models.FloatField(
+        default=0.0,
+        help_text="End-to-end search execution time in milliseconds.",
+    )
+    cache_hit = models.BooleanField(
+        default=False,
+        help_text="Whether structured query analysis came from cache.",
+    )
+    timings = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Per-phase retrieval timings in milliseconds.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -110,4 +135,4 @@ class SearchQueryLog(models.Model):
         verbose_name_plural = "Search Query Logs"
 
     def __str__(self) -> str:
-        return f"Query: {self.original_query} ({self.created_at})"
+        return f"Query: {self.query} ({self.created_at})"

@@ -2,12 +2,70 @@
 Tests for metadata filtering logic.
 """
 
-from django.test import TestCase
+from unittest import skipUnless
+
+from django.db import connection
+from django.test import SimpleTestCase, TestCase
 
 from ai_search.filters.metadata import apply_metadata_filters
 from ai_search.models import ProductSearchDocument
 from ai_search.query_understanding.schemas import QueryAnalysis
 from ai_search.tests.helpers import make_product
+
+
+class RecordingQuerySet:
+    def __init__(self):
+        self.filter_args = ()
+
+    def filter(self, *args, **kwargs):
+        self.filter_args = args
+        return self
+
+
+class MetadataFilterQueryTests(SimpleTestCase):
+    def test_color_filter_uses_exact_json_array_containment(self):
+        queryset = RecordingQuerySet()
+
+        apply_metadata_filters(
+            queryset,
+            QueryAnalysis(original_query="black", colors=["Black"]),
+        )
+
+        emitted = repr(queryset.filter_args)
+        self.assertIn("metadata__contains", emitted)
+        self.assertIn("{'colors': ['black']}", emitted)
+        self.assertNotIn("icontains", emitted)
+
+    def test_size_filter_uses_exact_json_array_containment(self):
+        queryset = RecordingQuerySet()
+
+        apply_metadata_filters(
+            queryset,
+            QueryAnalysis(original_query="size xl", sizes=["xl"]),
+        )
+
+        emitted = repr(queryset.filter_args)
+        self.assertIn("metadata__contains", emitted)
+        self.assertIn("{'sizes': ['XL']}", emitted)
+
+    def test_scalar_filters_use_case_insensitive_exact_lookups(self):
+        queryset = RecordingQuerySet()
+
+        apply_metadata_filters(
+            queryset,
+            QueryAnalysis(
+                original_query="nike hoodie",
+                category="hoodie",
+                brand="Nike",
+                gender="men",
+            ),
+        )
+
+        emitted = repr(queryset.filter_args)
+        self.assertIn("metadata__category__iexact", emitted)
+        self.assertIn("metadata__brand__iexact", emitted)
+        self.assertIn("metadata__gender__iexact", emitted)
+        self.assertNotIn("icontains", emitted)
 
 
 class MetadataFilterTests(TestCase):
@@ -52,6 +110,7 @@ class MetadataFilterTests(TestCase):
         self.assertEqual(filtered.count(), 1)
         self.assertEqual(filtered.first().product.pk, self.p2.pk)
 
+    @skipUnless(connection.vendor == "postgresql", "PostgreSQL JSONB required")
     def test_filter_color(self):
         qs = ProductSearchDocument.objects.all()
         analysis = QueryAnalysis(original_query="white", colors=["white"])
@@ -61,9 +120,33 @@ class MetadataFilterTests(TestCase):
         self.assertIn(self.p2.pk, pks)
         self.assertIn(self.p3.pk, pks)
 
+    @skipUnless(connection.vendor == "postgresql", "PostgreSQL JSONB required")
     def test_combined_filters(self):
         qs = ProductSearchDocument.objects.all()
         analysis = QueryAnalysis(original_query="white shirt under 2000", colors=["white"], category="shirt", price_max=2000.0)
         filtered = apply_metadata_filters(qs, analysis)
         self.assertEqual(filtered.count(), 1)
         self.assertEqual(filtered.first().product.pk, self.p2.pk)
+
+
+@skipUnless(connection.vendor == "postgresql", "PostgreSQL JSONB required")
+class PostgreSQLMetadataContainmentTests(TestCase):
+    def test_black_does_not_match_blackberry(self):
+        black = make_product(product_name="Black Hoodie")
+        blackberry = make_product(product_name="Blackberry Jacket")
+
+        black_doc = black.search_document
+        black_doc.metadata["colors"] = ["black"]
+        black_doc.save(update_fields=["metadata"])
+
+        blackberry_doc = blackberry.search_document
+        blackberry_doc.metadata["colors"] = ["blackberry"]
+        blackberry_doc.save(update_fields=["metadata"])
+
+        filtered = apply_metadata_filters(
+            ProductSearchDocument.objects.all(),
+            QueryAnalysis(original_query="black", colors=["black"]),
+        )
+
+        product_ids = set(filtered.values_list("product_id", flat=True))
+        self.assertEqual(product_ids, {black.pk})

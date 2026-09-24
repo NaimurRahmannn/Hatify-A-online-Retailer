@@ -75,6 +75,7 @@ INSTALLED_APPS = [
 
 # This is part of the database schema. Changing it requires a Django migration.
 AI_SEARCH_EMBEDDING_DIMENSION = 768
+AI_SEARCH_ENABLE_POSTGRES_INDEXES = True
 
 AI_SEARCH = {
     "EMBEDDING_PROVIDER": os.environ.get("AI_SEARCH_EMBEDDING_PROVIDER", "gemini"),
@@ -90,6 +91,21 @@ AI_SEARCH = {
     "DEFAULT_LIMIT": 10,
     "MAX_LIMIT": 50,
     "MAX_QUERY_LENGTH": 500,
+    "QUERY_CACHE_TTL": int(
+        os.environ.get("AI_SEARCH_QUERY_CACHE_TTL", "900")
+    ),
+}
+
+REDIS_URL = os.environ.get("REDIS_URL", "").strip()
+CACHES = {
+    "default": {
+        "BACKEND": (
+            "django.core.cache.backends.redis.RedisCache"
+            if REDIS_URL
+            else "django.core.cache.backends.locmem.LocMemCache"
+        ),
+        "LOCATION": REDIS_URL or "haatify-ai-search",
+    }
 }
 
 MIDDLEWARE = [

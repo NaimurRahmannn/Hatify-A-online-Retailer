@@ -1,7 +1,12 @@
 from django.contrib import admin
 from django.utils.text import Truncator
 
-from .models import EmbeddingStatus, ProductEmbedding, ProductSearchDocument
+from .models import (
+    EmbeddingStatus,
+    ProductEmbedding,
+    ProductSearchDocument,
+    SearchQueryLog,
+)
 
 
 @admin.register(ProductSearchDocument)
@@ -60,3 +65,30 @@ class ProductEmbeddingAdmin(admin.ModelAdmin):
     )
     def product(self, obj: ProductEmbedding) -> str:
         return obj.product_document.product.product_name
+
+
+@admin.register(SearchQueryLog)
+class SearchQueryLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "query_preview",
+        "result_count",
+        "cache_hit",
+        "execution_time_ms",
+        "created_at",
+    )
+    list_filter = ("cache_hit", "created_at")
+    search_fields = ("query", "normalized_query")
+    readonly_fields = (
+        "query",
+        "normalized_query",
+        "analysis",
+        "result_count",
+        "execution_time_ms",
+        "cache_hit",
+        "timings",
+        "created_at",
+    )
+
+    @admin.display(description="Query")
+    def query_preview(self, obj: SearchQueryLog) -> str:
+        return Truncator(obj.query).chars(100)

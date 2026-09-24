@@ -14,6 +14,7 @@ from django.conf import settings
 from django.db import transaction
 
 from ai_search.models import EmbeddingStatus, ProductEmbedding, ProductSearchDocument
+from ai_search.query_understanding.normalization import unique_values
 from ai_search.utils import normalize_text, unique_clean_values
 from products.models import Product
 
@@ -63,6 +64,8 @@ def _build_document_data(product: Product) -> dict[str, Any]:
     sizes = unique_clean_values(
         variant.size_name for variant in product.size_variant.all()
     )
+    metadata_colors = unique_values(colors, transform=str.casefold)
+    metadata_sizes = unique_values(sizes, transform=str.upper)
 
     brand = _attribute_text(product, "brand")
     material = _attribute_text(product, "material")
@@ -123,8 +126,8 @@ def _build_document_data(product: Product) -> dict[str, Any]:
             "category_type": category_type or None,
             "brand": brand,
             "price": float(product.price),
-            "colors": colors,
-            "sizes": sizes,
+            "colors": metadata_colors,
+            "sizes": metadata_sizes,
             "stock_available": stock_available,
             "material": material,
             "style": style,

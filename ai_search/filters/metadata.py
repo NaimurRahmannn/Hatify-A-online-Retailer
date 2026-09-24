@@ -5,6 +5,7 @@ Applies structured query analysis to filter a Django QuerySet of ProductSearchDo
 from django.db.models import Q, QuerySet
 
 from ai_search.models import ProductSearchDocument
+from ai_search.query_understanding.normalization import unique_values
 from ai_search.query_understanding.schemas import QueryAnalysis
 
 
@@ -30,32 +31,28 @@ def apply_metadata_filters(
 
     # Category
     if analysis.category:
-        # Assuming category might be stored case-insensitively or similarly
-        filters &= Q(metadata__category__icontains=analysis.category)
+        filters &= Q(metadata__category__iexact=analysis.category)
 
     # Brand
     if analysis.brand:
-        filters &= Q(metadata__brand__icontains=analysis.brand)
+        filters &= Q(metadata__brand__iexact=analysis.brand)
 
     # Gender
     if analysis.gender:
-        filters &= Q(metadata__gender__icontains=analysis.gender)
+        filters &= Q(metadata__gender__iexact=analysis.gender)
 
     # Colors
     if analysis.colors:
-        # If product metadata has a list of colors, we can check if it contains any of the requested colors.
-        # SQLite JSON1 extension supports this via Django, PostgreSQL definitely does.
-        # Using a Q object with OR for multiple colors
         color_q = Q()
-        for color in analysis.colors:
-            color_q |= Q(metadata__colors__icontains=color)
+        for color in unique_values(analysis.colors, transform=str.casefold):
+            color_q |= Q(metadata__contains={"colors": [color]})
         filters &= color_q
 
     # Sizes
     if analysis.sizes:
         size_q = Q()
-        for size in analysis.sizes:
-            size_q |= Q(metadata__sizes__icontains=size)
+        for size in unique_values(analysis.sizes, transform=str.upper):
+            size_q |= Q(metadata__contains={"sizes": [size]})
         filters &= size_q
 
     return queryset.filter(filters)

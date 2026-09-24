@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase
 
 from ai_search.models import ProductSearchDocument
+from ai_search.query_understanding import AnalysisResult, QueryAnalysis
 from ai_search.services.retrieval_service import (
     SearchResult,
     _normalize_scores,
@@ -45,12 +46,15 @@ class HybridRankingTests(TestCase):
         self.p2 = make_product(product_name="White T-Shirt")
         self.p3 = make_product(product_name="Winter Jacket")
         
-        # Mock QueryAnalyzer globally for all tests in this class
-        patcher = patch("ai_search.services.retrieval_service.QueryAnalyzer.analyze")
-        self.mock_analyze = patcher.start()
-        from ai_search.query_understanding import QueryAnalysis
-        self.mock_analyze.return_value = QueryAnalysis(original_query="test", intent="product_search")
-        self.addCleanup(patcher.stop)
+        analysis_patcher = patch(
+            "ai_search.services.retrieval_service.analyze_query",
+        )
+        self.mock_cached_analysis = analysis_patcher.start()
+        self.mock_cached_analysis.return_value = AnalysisResult(
+            analysis=QueryAnalysis(original_query="test", intent="product_search"),
+            cache_hit=True,
+        )
+        self.addCleanup(analysis_patcher.stop)
 
     @patch("ai_search.services.retrieval_service.semantic_search")
     @patch("ai_search.services.retrieval_service.keyword_search")
@@ -111,8 +115,23 @@ class HybridRankingTests(TestCase):
         mock_kw.return_value = []
         mock_sem.return_value = []
 
-        results = retrieve_products("xyznonexistent")["results"]
-        self.assertEqual(results, [])
+        payload = retrieve_products("xyznonexistent")
+        self.assertEqual(payload["results"], [])
+        self.assertTrue(payload["cache_hit"])
+        self.assertEqual(
+            set(payload["timings"]),
+            {
+                "analysis_ms",
+                "filter_ms",
+                "keyword_ms",
+                "semantic_ms",
+                "ranking_ms",
+                "total_ms",
+            },
+        )
+        self.assertTrue(
+            all(value >= 0 for value in payload["timings"].values())
+        )
 
     @patch(
         "ai_search.services.retrieval_service.semantic_search",
@@ -125,10 +144,12 @@ class HybridRankingTests(TestCase):
         mock_kw.return_value = [doc1]
 
         with self.assertLogs("ai_search.services.retrieval_service", level="WARNING"):
-            results = retrieve_products("test query")["results"]
+            payload = retrieve_products("test query")
 
+        results = payload["results"]
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].semantic_score, 0.0)
+        self.assertGreaterEqual(payload["timings"]["semantic_ms"], 0.0)
 
     @patch("ai_search.services.retrieval_service.semantic_search")
     @patch("ai_search.services.retrieval_service.keyword_search")
