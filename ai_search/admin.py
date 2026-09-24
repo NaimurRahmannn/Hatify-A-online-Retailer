@@ -1,32 +1,58 @@
 from django.contrib import admin
 from django.utils.text import Truncator
 
-from .models import ProductEmbedding, ProductSearchDocument
+from .models import EmbeddingStatus, ProductEmbedding, ProductSearchDocument
 
 
 @admin.register(ProductSearchDocument)
 class ProductSearchDocumentAdmin(admin.ModelAdmin):
     list_display = (
         "product",
+        "content_hash_short",
+        "has_embedding",
         "created_at",
         "updated_at",
         "search_text_preview",
     )
     list_filter = ("created_at", "updated_at")
     search_fields = ("product__product_name", "searchable_text")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "content_hash")
 
     @admin.display(description="Search text preview")
     def search_text_preview(self, obj: ProductSearchDocument) -> str:
         return Truncator(obj.searchable_text).chars(120)
 
+    @admin.display(description="Content hash")
+    def content_hash_short(self, obj: ProductSearchDocument) -> str:
+        return obj.content_hash[:12] + "…" if obj.content_hash else "—"
+
+    @admin.display(description="Embedding", boolean=True)
+    def has_embedding(self, obj: ProductSearchDocument) -> bool:
+        try:
+            return obj.embedding.status == EmbeddingStatus.READY
+        except ProductEmbedding.DoesNotExist:
+            return False
+
 
 @admin.register(ProductEmbedding)
 class ProductEmbeddingAdmin(admin.ModelAdmin):
-    list_display = ("product", "model_name", "embedding_status", "created_at")
-    list_filter = ("model_name", "created_at")
+    list_display = (
+        "product",
+        "status",
+        "model_name",
+        "attempt_count",
+        "last_attempt_at",
+        "created_at",
+        "updated_at",
+    )
+    list_filter = ("status", "model_name", "created_at", "updated_at")
     search_fields = ("product_document__product__product_name",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "content_hash",
+        "error_message",
+    )
 
     @admin.display(
         description="Product",
@@ -34,7 +60,3 @@ class ProductEmbeddingAdmin(admin.ModelAdmin):
     )
     def product(self, obj: ProductEmbedding) -> str:
         return obj.product_document.product.product_name
-
-    @admin.display(description="Embedding status", boolean=True)
-    def embedding_status(self, obj: ProductEmbedding) -> bool:
-        return obj.embedding is not None

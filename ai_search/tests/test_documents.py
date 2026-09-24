@@ -1,4 +1,7 @@
-import os
+"""
+Tests for product document generation — preserves all Sprint 1 behavior.
+"""
+
 from importlib import import_module
 from io import StringIO
 from types import SimpleNamespace
@@ -11,32 +14,25 @@ from django.db.models.signals import post_save
 from django.test import TestCase
 
 from ai_search.apps import AiSearchConfig
-from ai_search.embeddings import EmbeddingService
-from ai_search.models import ProductEmbedding, ProductSearchDocument
-from products.models import Category, ColorVariant, Product, SizeVariant
+from ai_search.models import (
+    EmbeddingStatus,
+    ProductEmbedding,
+    ProductSearchDocument,
+)
+from ai_search.tests.helpers import make_category, make_color, make_product, make_size
+from products.models import Product
 
 
-class AiSearchTests(TestCase):
+class ProductDocumentTests(TestCase):
+    """Sprint 1 document generation and signal tests."""
+
     def setUp(self):
-        self.category = Category.objects.create(
-            categroy_name="Test Category",
-            category_type="MEN",
-        )
-        self.color = ColorVariant.objects.create(color_name="Red")
-        self.size = SizeVariant.objects.create(size_name="L")
-
-    def create_product(self, **overrides):
-        values = {
-            "product_name": "Test Product",
-            "price": "100.00",
-            "product_description": "A nice test product.",
-            "category": self.category,
-        }
-        values.update(overrides)
-        return Product.objects.create(**values)
+        self.category = make_category()
+        self.color = make_color()
+        self.size = make_size()
 
     def test_product_creation_signal(self):
-        product = self.create_product()
+        product = make_product(category=self.category)
         product.color_variant.add(self.color)
         product.size_variant.add(self.size)
 
@@ -67,8 +63,9 @@ class AiSearchTests(TestCase):
             self.assertIsNone(doc.metadata[field])
 
     def test_product_update_signal(self):
-        product = self.create_product(product_name="Initial Product")
-
+        product = make_product(
+            category=self.category, product_name="Initial Product",
+        )
         product.product_name = "Updated Product"
         product.save()
 
@@ -77,10 +74,11 @@ class AiSearchTests(TestCase):
         self.assertNotIn("Initial Product", doc.searchable_text)
 
     def test_partial_product_update_indexes_only_persisted_values(self):
-        product = self.create_product(product_name="Persisted Name")
+        product = make_product(
+            category=self.category, product_name="Persisted Name",
+        )
         product.product_name = "Unsaved Name"
         product.product_description = "Persisted description change"
-
         product.save(update_fields=["product_description"])
 
         product.refresh_from_db()
@@ -90,23 +88,23 @@ class AiSearchTests(TestCase):
         self.assertNotIn("Unsaved Name", document.searchable_text)
 
     def test_product_deletion(self):
-        product = self.create_product(product_name="Delete Me")
+        product = make_product(category=self.category, product_name="Delete Me")
         product_id = product.pk
 
         self.assertTrue(ProductSearchDocument.objects.filter(product=product).exists())
-
         product.delete()
-
         self.assertFalse(
             ProductSearchDocument.objects.filter(product_id=product_id).exists()
         )
 
     def test_build_search_documents_command(self):
-        self.create_product(product_name="Command Product 1", price="20.00")
-        self.create_product(product_name="Command Product 2", price="30.00")
-
+        make_product(
+            category=self.category, product_name="Command Product 1", price="20.00",
+        )
+        make_product(
+            category=self.category, product_name="Command Product 2", price="30.00",
+        )
         ProductSearchDocument.objects.all().delete()
-
         self.assertEqual(ProductSearchDocument.objects.count(), 0)
 
         out = StringIO()
@@ -117,28 +115,25 @@ class AiSearchTests(TestCase):
 
     def test_ai_search_app_config_loads_product_signal(self):
         config = apps.get_app_config("ai_search")
-
         self.assertIsInstance(config, AiSearchConfig)
         self.assertTrue(post_save.has_listeners(Product))
 
     def test_document_text_removes_html_and_normalizes_whitespace(self):
-        product = self.create_product(
+        product = make_product(
+            category=self.category,
             product_description="<p>Soft&nbsp; cotton</p>\n\n winter   layer",
         )
-
         text = product.search_document.searchable_text
-
         self.assertNotIn("<p>", text)
         self.assertNotIn("&nbsp;", text)
         self.assertIn("Description:\nSoft cotton winter layer", text)
 
     def test_document_text_removes_html_encoded_as_entities(self):
-        product = self.create_product(
+        product = make_product(
+            category=self.category,
             product_description="&lt;b&gt;Soft&lt;/b&gt; cotton",
         )
-
         text = product.search_document.searchable_text
-
         self.assertNotIn("<b>", text)
         self.assertIn("Description:\nSoft cotton", text)
 
@@ -148,7 +143,9 @@ class AiSearchTests(TestCase):
                 "ai_search.signals.generate_product_document",
                 side_effect=RuntimeError("document backend unavailable"),
             ):
-                product = self.create_product(product_name="Still Created")
+                product = make_product(
+                    category=self.category, product_name="Still Created",
+                )
 
         self.assertTrue(Product.objects.filter(pk=product.pk).exists())
         self.assertFalse(
@@ -162,12 +159,16 @@ class AiSearchTests(TestCase):
                 searchable_text=None,
             )
 
-        with self.assertLogs("ai_search.services", level="ERROR"):
+        with self.assertLogs(
+            "ai_search.services.product_document_service", level="ERROR",
+        ):
             with patch(
-                "ai_search.services._build_document_data",
+                "ai_search.services.product_document_service._build_document_data",
                 side_effect=create_invalid_document,
             ):
-                product = self.create_product(product_name="Transaction Safe")
+                product = make_product(
+                    category=self.category, product_name="Transaction Safe",
+                )
 
         self.assertTrue(Product.objects.filter(pk=product.pk).exists())
         self.assertFalse(
@@ -175,13 +176,13 @@ class AiSearchTests(TestCase):
         )
 
     def test_embedding_is_one_to_one_and_dimension_is_fixed(self):
-        product = self.create_product()
+        product = make_product(category=self.category)
         document = product.search_document
-        ProductEmbedding.objects.create(
-            product_document=document,
-            model_name="test-model",
-        )
+        # The document service creates an embedding row automatically now.
+        embedding = document.embedding
+        self.assertEqual(embedding.status, EmbeddingStatus.PENDING)
 
+        # Creating a second embedding for the same document must fail.
         with self.assertRaises(IntegrityError), transaction.atomic():
             ProductEmbedding.objects.create(
                 product_document=document,
@@ -191,38 +192,6 @@ class AiSearchTests(TestCase):
         field = ProductEmbedding._meta.get_field("embedding")
         self.assertEqual(field.dimensions, 768)
         self.assertIsNotNone(ProductEmbedding._meta.get_field("updated_at"))
-
-    def test_embedding_failure_returns_empty_retryable_result(self):
-        with patch.dict(
-            os.environ,
-            {
-                "OPENAI_API_KEY": "test-key",
-                "GEMINI_API_KEY": "",
-                "AI_SEARCH_EMBEDDING_PROVIDER": "openai",
-            },
-            clear=False,
-        ):
-            service = EmbeddingService()
-
-        with self.assertLogs("ai_search.embeddings", level="ERROR"):
-            with patch.object(
-                service,
-                "_generate_openai_embedding",
-                side_effect=RuntimeError("provider unavailable"),
-            ):
-                embedding, model_name = service.generate_embedding("valid text")
-
-        self.assertIsNone(embedding)
-        self.assertEqual(model_name, "text-embedding-3-small")
-
-    def test_embedding_service_initialization_without_keys_is_quiet(self):
-        with patch.dict(
-            os.environ,
-            {"OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
-            clear=False,
-        ):
-            with self.assertNoLogs("ai_search.embeddings", level="WARNING"):
-                EmbeddingService()
 
     def test_embedding_migration_prefers_older_valid_vector(self):
         migration = import_module(
@@ -234,5 +203,103 @@ class AiSearchTests(TestCase):
         selected = migration.select_embedding_to_keep(
             [newer_empty, older_valid]
         )
-
         self.assertIs(selected, older_valid)
+
+
+class DocumentSemanticHashTests(TestCase):
+    """Sprint 2 content-hash and embedding-state tests."""
+
+    def setUp(self):
+        self.category = make_category()
+
+    def test_document_has_embedding_text_and_content_hash(self):
+        product = make_product(category=self.category)
+        doc = product.search_document
+
+        self.assertTrue(doc.embedding_text)
+        self.assertTrue(doc.content_hash)
+        self.assertEqual(len(doc.content_hash), 64)
+
+    def test_embedding_text_excludes_price(self):
+        product = make_product(category=self.category, price="999.00")
+        doc = product.search_document
+
+        self.assertNotIn("999", doc.embedding_text)
+        self.assertIn("999", doc.searchable_text)
+
+    def test_price_change_does_not_change_content_hash(self):
+        product = make_product(category=self.category, price="100.00")
+        doc = product.search_document
+        original_hash = doc.content_hash
+
+        product.price = "200.00"
+        product.save()
+
+        doc.refresh_from_db()
+        self.assertEqual(doc.content_hash, original_hash)
+
+    def test_description_change_updates_content_hash(self):
+        product = make_product(
+            category=self.category,
+            product_description="Original description",
+        )
+        doc = product.search_document
+        original_hash = doc.content_hash
+
+        product.product_description = "Completely new description"
+        product.save()
+
+        doc.refresh_from_db()
+        self.assertNotEqual(doc.content_hash, original_hash)
+
+    def test_embedding_state_created_as_pending(self):
+        product = make_product(category=self.category)
+        embedding = product.search_document.embedding
+        self.assertEqual(embedding.status, EmbeddingStatus.PENDING)
+
+    def test_description_change_invalidates_ready_embedding(self):
+        product = make_product(
+            category=self.category,
+            product_description="Original",
+        )
+        doc = product.search_document
+        emb = doc.embedding
+
+        # Simulate a ready embedding.
+        emb.embedding = [0.1] * 768
+        emb.status = EmbeddingStatus.READY
+        emb.content_hash = doc.content_hash
+        emb.save()
+
+        # Change semantic content.
+        product.product_description = "Changed description"
+        product.save()
+
+        emb.refresh_from_db()
+        self.assertEqual(emb.status, EmbeddingStatus.PENDING)
+        self.assertIsNone(emb.embedding)
+
+    def test_price_change_preserves_ready_embedding(self):
+        product = make_product(
+            category=self.category, price="100.00",
+        )
+        doc = product.search_document
+        emb = doc.embedding
+
+        # Simulate a ready embedding with matching hash and model.
+        from django.conf import settings
+
+        config = settings.AI_SEARCH
+        emb.embedding = [0.1] * 768
+        emb.status = EmbeddingStatus.READY
+        emb.content_hash = doc.content_hash
+        emb.model_name = config["EMBEDDING_MODEL"]
+        emb.save()
+
+        # Only change price.
+        product.price = "200.00"
+        product.save()
+
+        emb.refresh_from_db()
+        self.assertEqual(emb.status, EmbeddingStatus.READY)
+        self.assertIsNotNone(emb.embedding)

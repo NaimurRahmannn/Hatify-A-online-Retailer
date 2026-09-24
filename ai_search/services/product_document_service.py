@@ -1,9 +1,19 @@
+"""
+Product document generation service.
+
+Builds and persists AI-ready search documents for products. This module was
+originally ``ai_search/services.py`` and has been moved into the services
+package without changing its public API.
+"""
+
+import hashlib
 import logging
 from typing import Any
 
+from django.conf import settings
 from django.db import transaction
 
-from ai_search.models import ProductSearchDocument
+from ai_search.models import EmbeddingStatus, ProductEmbedding, ProductSearchDocument
 from ai_search.utils import normalize_text, unique_clean_values
 from products.models import Product
 
@@ -62,13 +72,16 @@ def _build_document_data(product: Product) -> dict[str, Any]:
     fit = _attribute_text(product, "fit")
     stock_available = _stock_availability(product)
 
-    sections = [f"Product Name:\n{name}"]
+    # -----------------------------------------------------------------
+    # Semantic sections (stable product attributes for embedding_text)
+    # -----------------------------------------------------------------
+    semantic_sections: list[str] = [f"Product Name:\n{name}"]
     if category_name:
-        sections.append(f"Category:\n{category_name}")
+        semantic_sections.append(f"Category:\n{category_name}")
     if brand:
-        sections.append(f"Brand:\n{brand}")
+        semantic_sections.append(f"Brand:\n{brand}")
     if description:
-        sections.append(f"Description:\n{description}")
+        semantic_sections.append(f"Description:\n{description}")
 
     attributes: list[str] = []
     if colors:
@@ -86,15 +99,24 @@ def _build_document_data(product: Product) -> dict[str, Any]:
         if value:
             attributes.append(f"{label}: {value}")
     if attributes:
-        sections.append("Attributes:\n" + "\n".join(attributes))
+        semantic_sections.append("Attributes:\n" + "\n".join(attributes))
 
-    sections.append(f"Price:\n{product.price} BDT")
+    # -----------------------------------------------------------------
+    # Volatile sections (change frequently, excluded from embedding)
+    # -----------------------------------------------------------------
+    volatile_sections: list[str] = [f"Price:\n{product.price} BDT"]
     if stock_available is not None:
         status = "In stock" if stock_available else "Out of stock"
-        sections.append(f"Stock Availability:\n{status}")
+        volatile_sections.append(f"Stock Availability:\n{status}")
+
+    embedding_text = "\n\n".join(semantic_sections)
+    searchable_text = "\n\n".join(semantic_sections + volatile_sections)
+    content_hash = hashlib.sha256(embedding_text.encode("utf-8")).hexdigest()
 
     return {
-        "text": "\n\n".join(sections),
+        "text": searchable_text,
+        "embedding_text": embedding_text,
+        "content_hash": content_hash,
         "metadata": {
             "product_id": str(product.pk),
             "category": category_name or None,
@@ -114,9 +136,63 @@ def _build_document_data(product: Product) -> dict[str, Any]:
     }
 
 
+def _ensure_embedding_state(document: ProductSearchDocument) -> None:
+    """Ensure an embedding-state row exists and invalidate stale vectors.
+
+    This runs inside the caller's transaction.  It never makes an external
+    API call — only creates or updates a database row.
+    """
+    config = getattr(settings, "AI_SEARCH", {})
+    model_name = config.get("EMBEDDING_MODEL", "")
+
+    embedding, created = ProductEmbedding.objects.get_or_create(
+        product_document=document,
+        defaults={
+            "model_name": model_name,
+            "status": EmbeddingStatus.PENDING,
+        },
+    )
+
+    if created:
+        return
+
+    hash_matches = embedding.content_hash == document.content_hash
+    model_matches = embedding.model_name == model_name
+
+    is_current = (
+        embedding.status == EmbeddingStatus.READY
+        and embedding.embedding is not None
+        and hash_matches
+        and model_matches
+    )
+
+    if is_current:
+        return  # Vector is up-to-date — nothing to do.
+
+    if not hash_matches or not model_matches:
+        # Semantic content or configured model changed — invalidate.
+        # Retain attempt_count and last_attempt_at for observability.
+        embedding.embedding = None
+        embedding.status = EmbeddingStatus.PENDING
+        embedding.error_message = ""
+        embedding.model_name = model_name
+        embedding.save(
+            update_fields=[
+                "embedding",
+                "status",
+                "error_message",
+                "model_name",
+                "updated_at",
+            ]
+        )
+
+
 def generate_product_document(product: Product) -> ProductSearchDocument:
     """
     Build and persist the AI-ready document for a product.
+
+    Also ensures a one-to-one embedding-state row exists and invalidates
+    stale vectors when the semantic content hash changes.
 
     Callers can catch ``ProductDocumentGenerationError`` without depending on
     lower-level ORM or data-normalization exceptions.
@@ -128,9 +204,12 @@ def generate_product_document(product: Product) -> ProductSearchDocument:
                 product=product,
                 defaults={
                     "searchable_text": document_data["text"],
+                    "embedding_text": document_data["embedding_text"],
+                    "content_hash": document_data["content_hash"],
                     "metadata": document_data["metadata"],
                 },
             )
+            _ensure_embedding_state(document)
             return document
     except Exception as exc:
         product_id = getattr(product, "pk", None)

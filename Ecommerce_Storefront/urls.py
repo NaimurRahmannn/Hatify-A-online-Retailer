@@ -26,6 +26,7 @@ urlpatterns = [
     path('product/' , include('products.urls') ),
     path('accounts/',include('accounts.urls')),
     path('accounts/',include('allauth.urls')),
+    path('api/ai-search/', include('ai_search.urls')),
     path('admin/', admin.site.urls),
 ]
 urlpatterns += [re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT})]

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -74,6 +75,20 @@ INSTALLED_APPS = [
 
 # This is part of the database schema. Changing it requires a Django migration.
 AI_SEARCH_EMBEDDING_DIMENSION = 768
+
+AI_SEARCH = {
+    "EMBEDDING_PROVIDER": os.environ.get("AI_SEARCH_EMBEDDING_PROVIDER", "gemini"),
+    "EMBEDDING_MODEL": os.environ.get(
+        "AI_SEARCH_EMBEDDING_MODEL",
+        os.environ.get("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2"),
+    ),
+    "EMBEDDING_DIMENSION": AI_SEARCH_EMBEDDING_DIMENSION,
+    "KEYWORD_WEIGHT": 0.5,
+    "SEMANTIC_WEIGHT": 0.5,
+    "DEFAULT_LIMIT": 10,
+    "MAX_LIMIT": 50,
+    "MAX_QUERY_LENGTH": 500,
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

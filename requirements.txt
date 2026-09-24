@@ -11,3 +11,4 @@ django-allauth[socialaccount]==65.19.4
 PyJWT==2.10.1
 stripe==15.6.1
 pgvector==0.5.0
+google-genai>=1.0.0
