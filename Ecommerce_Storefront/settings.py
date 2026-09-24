@@ -99,7 +99,10 @@ AI_SEARCH = {
     ),
 }
 
-REDIS_URL = os.environ.get("REDIS_URL", "").strip()
+REDIS_URL = os.environ.get("REDIS_URL", "").strip().strip('"').strip("'")
+if REDIS_URL.startswith("redis-cli -u "):
+    REDIS_URL = REDIS_URL.replace("redis-cli -u ", "").strip().strip('"').strip("'")
+    
 CACHES = {
     "default": {
         "BACKEND": (

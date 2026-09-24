@@ -38,3 +38,21 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message {self.id} ({self.role})"
+
+
+class ChatRequestLog(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="request_logs")
+    query = models.TextField()
+    intent = models.CharField(max_length=100, blank=True, null=True)
+    retrieval_time_ms = models.FloatField(null=True, blank=True)
+    context_time_ms = models.FloatField(null=True, blank=True)
+    llm_time_ms = models.FloatField(null=True, blank=True)
+    total_time_ms = models.FloatField(null=True, blank=True)
+    token_usage = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Log for Conv {self.conversation_id} at {self.created_at}"

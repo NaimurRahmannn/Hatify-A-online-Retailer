@@ -1,0 +1,12 @@
+[
+  {
+    "query": "black hoodie under 3000",
+    "expected_products": ["Black Hoodie"],
+    "expected_information": ["price", "size", "color"]
+  },
+  {
+    "query": "do you have red t-shirts?",
+    "expected_products": ["Red T-Shirt"],
+    "expected_information": ["price", "color"]
+  }
+]

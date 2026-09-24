@@ -50,6 +50,9 @@ class GeminiLLMProvider(LLMProvider):
         return response.text
 
 
+import functools
+
+@functools.lru_cache(maxsize=1)
 def get_llm_provider() -> LLMProvider:
     provider = getattr(settings, "AI_SEARCH", {}).get("CHAT_PROVIDER", "gemini").lower()
     if provider == "gemini":
