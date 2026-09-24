@@ -69,8 +69,11 @@ INSTALLED_APPS = [
     'payments.apps.PaymentsConfig',
     'accounts',
     'home',
-    'ai_search',
+    'ai_search.apps.AiSearchConfig',
 ]
+
+# This is part of the database schema. Changing it requires a Django migration.
+AI_SEARCH_EMBEDDING_DIMENSION = 768
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
