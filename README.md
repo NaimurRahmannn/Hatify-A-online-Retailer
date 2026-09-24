@@ -1,253 +1,334 @@
 <div align="center">
 
-# 🛒 Haatify — E-Commerce Storefront
+# 🛒 Haatify — AI-Powered E-Commerce Storefront
 
-### A modern, full-featured e-commerce platform built with Django
+### A Next-Generation Fashion Retail Platform with Hybrid AI Search & Smart Shopping Assistant
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://djangoproject.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Django](https://img.shields.io/badge/Django-6.0-092E20?style=for-the-badge&logo=django&logoColor=white)](https://djangoproject.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.5_Flash_Lite-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+[![Stripe](https://img.shields.io/badge/Stripe-Checkout_&_Webhooks-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com)
 [![Render](https://img.shields.io/badge/Deployed_on-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://haatify.onrender.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 <br/>
 
-**[🌐 Live Demo](https://haatify.onrender.com)** &nbsp;·&nbsp; **[🐛 Report Bug](../../issues)** &nbsp;·&nbsp; **[✨ Request Feature](../../issues)**
+**[🌐 Live Demo](https://haatify.onrender.com)** &nbsp;·&nbsp; **[🎬 Video Demo](https://youtu.be/06E7dtBlxFk?si=zh1EPSy-Z79_eTTK)** &nbsp;·&nbsp; **[🐛 Report Bug](https://github.com/NaimurRahmannn/Hatify-An-AI-powered-online-Retailer-shop/issues)** &nbsp;·&nbsp; **[✨ Request Feature](https://github.com/NaimurRahmannn/Hatify-An-AI-powered-online-Retailer-shop/issues)**
 
 ---
 
 </div>
 
-## 📖 About
+## 📖 Overview
 
-**Haatify** is a clean, responsive e-commerce storefront designed for fashion retail. It supports product browsing by categories (Men & Women), shopping cart management, order checkout with multiple payment options, user authentication, and an admin dashboard for managing inventory.
+**Haatify** is an enterprise-grade, modern fashion e-commerce storefront engineered with **Django 6** and augmented with state-of-the-art **Generative AI** and **Vector Retrieval**. 
+
+Beyond traditional online storefronts, Haatify provides:
+- **Intelligent Hybrid Search (`ai_search`)**: Combines lexical full-text search (PostgreSQL trigram / BM25) with high-dimensional 768-vector embeddings (`pgvector` + Gemini Embedding 2) for deep semantic comprehension (e.g. natural language queries like *"warm winter coat for office casual"*).
+- **Interactive AI Shopping Stylist (`ai_assistant`)**: An in-app conversational assistant powered by **Google Gemini 3.5 Flash Lite** that understands user preferences, recommends matching products, splits results by gender/department, and suggests one-tap conversational filter chips.
+- **Full E-Commerce Life Cycle**: Cart management, dynamic variant pricing, multi-channel checkouts (Stripe Hosted Checkout with automated Webhooks, bKash, Nagad, Cash on Delivery), and dynamic PDF invoice generation.
 
 <br/>
 
-## 🎬 Project Video
+---
 
-- YouTube Demo: https://youtu.be/06E7dtBlxFk?si=zh1EPSy-Z79_eTTK
+## ✨ Key Features
 
-<br/>
-
-## ⚡ Features
-
+### 🤖 AI-Powered Capabilities
 | Feature | Description |
-|---------|-------------|
-| 🏠 **Homepage** | Hero section with featured products and category navigation |
-| 👕 **Product Catalog** | Browse products by Men's and Women's categories |
-| 🔍 **Search** | Full-text search across product names, categories & descriptions |
-| 🛍️ **Shopping Cart** | Session-based cart with add, update quantity & remove |
-| 💳 **Checkout** | Stripe-hosted Checkout (test mode), bKash, Nagad & Cash on Delivery |
-| 🧾 **Invoice** | Order confirmation with invoice details & PDF download |
-| 👤 **User Accounts** | Registration, login & Google OAuth |
-| 🎨 **Product Variants** | Color and size variants with variant-based pricing |
-| 🖼️ **Image Gallery** | Multiple images per product with Cloudinary storage |
-| 📱 **Responsive Design** | Mobile-first UI with Bootstrap |
-| 🔐 **Admin Panel** | Django admin for full CRUD on products, orders & users |
-| 💰 **Stripe Payments** | Secure Stripe-hosted Checkout with webhook verification |
+|---|---|
+| 🧠 **Semantic Vector Search** | Utilizes 768-dimensional embeddings generated with `gemini-embedding-2` stored in PostgreSQL using the `pgvector` extension with Cosine Distance indexing. |
+| 🔀 **Hybrid Search Fusion** | Blends lexical keyword match scores and semantic cosine similarities for high precision & recall. |
+| 💬 **AI Shopping Stylist Chatbot** | Built on **Gemini 3.5 Flash Lite** with real-time product context injection, multi-turn conversation memory, and streaming-style UX. |
+| 👥 **Smart Gender/Collection Splitting** | Intelligently divides recommendations into **Men's** and **Women's** collections and prompts interactive quick-filter chips. |
+| 📝 **Semantic Embedding Description** | Specialized backend metadata enrichment for fabric, fit, silhouette, color tones, and seasonal aesthetics to power precision vector matching without cluttering customer-facing product pages. |
+
+### 🛍️ Storefront & E-Commerce Core
+| Feature | Description |
+|---|---|
+| 👗 **Product Catalog & Variants** | Full catalog with categories (Men, Women), color/size variants, dynamic stock tracking, and variant-based pricing. |
+| 🛒 **Cart & Session Management** | Session-backed shopping cart with instant quantity updates, variant switching, and stock threshold validation. |
+| 💳 **Multi-Channel Checkout** | **Stripe Hosted Checkout** (Test Mode), **bKash**, **Nagad**, and **Cash on Delivery (COD)**. |
+| ⚡ **Robust Webhook Handling** | Production-ready Stripe webhooks verifying signatures (`checkout.session.completed`, `charge.refunded`, async payments, etc.). |
+| 🧾 **Invoice & Order Confirmation** | Instant order confirmation summaries and on-demand downloadable PDF invoices. |
+| 👤 **User Authentication** | Standard registration/login, password reset flows, and single-click **Google OAuth 2.0** via `django-allauth`. |
+| 🖼️ **Cloudinary Media Storage** | Scalable cloud image hosting with automatic optimizations and transformations. |
+| 🛡️ **Django Admin Dashboard** | Full CRUD capabilities for products, inventory, embeddings, orders, and user permissions. |
 
 <br/>
 
-## 🛠️ Tech Stack
+---
 
-<div align="center">
+## 🛠️ Architecture & Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | Django 5.2 · Gunicorn |
-| **Database** | PostgreSQL (via dj-database-url) |
-| **Payments** | Stripe Checkout (test mode) |
-| **Media Storage** | Cloudinary |
-| **Static Files** | WhiteNoise |
-| **Frontend** | Bootstrap · jQuery · Font Awesome |
-| **Deployment** | Render.com |
+```
+                                  ┌────────────────────────┐
+                                  │   Browser / Client     │
+                                  │ (Bootstrap, JS Widget) │
+                                  └───────────┬────────────┘
+                                              │ HTTP / JSON API
+                                              ▼
+                                  ┌────────────────────────┐
+                                  │   Gunicorn + Django    │
+                                  │ (Ecommerce_Storefront) │
+                                  └─────┬────────────┬─────┘
+                                        │            │
+            ┌───────────────────────────┘            └───────────────────────────┐
+            ▼                                                                    ▼
+┌───────────────────────┐                                            ┌───────────────────────┐
+│ PostgreSQL + pgvector │                                            │   Google Gemini API   │
+│ - Product Documents   │                                            │ - gemini-3.5-flash-lite│
+│ - 768-dim Embeddings  │                                            │ - gemini-embedding-2  │
+│ - User & Order Data   │                                            └───────────────────────┘
+└───────────────────────┘                                                        ▲
+            ▲                                                                    │
+            └─────────────────────────── Hybrid Search ──────────────────────────┘
+```
 
-</div>
+| Layer | Technologies & Tools |
+|---|---|
+| **Backend Framework** | Django 6.0 · Python 3.10+ · Gunicorn WSGI |
+| **Generative AI / LLM** | Google Gemini 3.5 Flash Lite (`gemini-3.5-flash-lite`) |
+| **Embeddings & Search** | Google Gemini Embedding 2 (`gemini-embedding-2`) · `pgvector` (HNSW / IVFFlat cosine) |
+| **Database** | PostgreSQL with `pgvector` extension (via `dj-database-url`) |
+| **Caching** | Redis (production) / Django LocMemCache (local fallback) |
+| **Payments** | Stripe Checkout API · Webhook Signature Verification |
+| **Media & Static** | Cloudinary Storage · WhiteNoise |
+| **Authentication** | Django Auth · `django-allauth` · Google OAuth 2.0 PKCE |
+| **Frontend UI** | HTML5 · CSS3 (Custom Glassmorphic Theme) · Bootstrap · Vanilla JS · jQuery · Font Awesome 6 |
+| **Hosting & CI/CD** | Render.com (`build.sh`, `Procfile`) |
 
 <br/>
+
+---
 
 ## 📁 Project Structure
 
-```
-Ecommerce_Storefront/
+```text
+Ecommerce-sites-with-Django/
 │
-├── Ecommerce_Storefront/    # Django project settings & config
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
+├── Ecommerce_Storefront/       # Core project configuration
+│   ├── settings.py             # Settings (AI Search, Gemini, Stripe, Cloudinary, DB)
+│   ├── urls.py                 # Master URL routing
+│   └── wsgi.py                 # WSGI application entrypoint
 │
-├── home/                    # Homepage & contact page
-├── products/                # Product catalog, cart, checkout & orders
-├── payments/                # Stripe Checkout, webhooks & payment services
-├── accounts/                # User auth, profiles & email verification
-├── base/                    # Shared base model & email utilities
+├── ai_search/                  # Hybrid & Vector Retrieval Engine
+│   ├── models.py               # ProductDocument & Embedding vectors (pgvector)
+│   ├── services/               # Embedding service, Hybrid retrieval & ranking
+│   ├── filters/                # Metadata filtering & category extraction
+│   └── management/commands/    # CLI commands (generate_embeddings, etc.)
 │
-├── templates/               # HTML templates
-│   ├── base/                #   └─ base layout, sidebar, alerts
-│   ├── home/                #   └─ index, contact
-│   ├── product/             #   └─ product detail, cart, checkout, invoice, search
-│   ├── payments/            #   └─ success, cancel
-│   └── accounts/            #   └─ login, register
+├── ai_assistant/               # Conversational AI Shopping Stylist
+│   ├── views.py                # Chat API endpoints (/api/ai-assistant/chat/)
+│   ├── prompts.py              # System prompts, role definitions & formatting rules
+│   ├── services/               # Chat service, context builder & LLM providers
+│   └── serializers.py          # Chat request & response serialization
 │
-├── public/static/           # CSS, JS, fonts & images
-├── build.sh                 # Render build script
-├── manage.py
-└── requirements.txt
+├── products/                   # Storefront catalog & order processing
+│   ├── models.py               # Category, Product, ProductVariant, Cart, Order
+│   ├── views.py                # Catalog, product detail, cart, checkout & invoice
+│   └── admin.py                # Admin customization with embedding description
+│
+├── payments/                   # Stripe payment integration
+│   ├── views.py                # Stripe checkout session creation & webhook receiver
+│   ├── services.py             # Stripe API client & order reconciliation
+│   └── config.py               # Stripe environment validation
+│
+├── accounts/                   # Authentication & User Management
+│   ├── models.py               # Profile model & token verification
+│   └── views.py                # Login, registration, profile & OAuth callbacks
+│
+├── home/                       # Landing page & contact views
+├── base/                       # Shared base models, mixins & email utilities
+│
+├── templates/                  # Django HTML templates
+│   ├── base/                   # Base layout, navbar, footer & AI assistant modal
+│   ├── home/                   # Hero section & featured products
+│   ├── product/                # Product details, cart, checkout & invoices
+│   ├── payments/               # Payment success & cancellation pages
+│   └── accounts/               # Login, registration & account dashboards
+│
+├── public/static/              # Static assets
+│   ├── css/                    # Custom stylesheets (ui.css, ai_assistant.css)
+│   ├── js/                     # Client logic (ai_assistant.js, script.js)
+│   └── images/                 # Brand assets and placeholders
+│
+├── Procfile                    # Render production process definition (timeout 120s)
+├── build.sh                    # Automated Render build script
+├── requirements.txt            # Python dependencies
+└── manage.py                   # Django CLI tool
 ```
 
 <br/>
+
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Python 3.10+
-- PostgreSQL (or use SQLite for local dev)
-- Cloudinary account (for media uploads)
-- Stripe account (for payment testing)
+- **Python 3.10+**
+- **PostgreSQL** with `pgvector` enabled (or Docker PostgreSQL image with pgvector)
+- **Google Gemini API Key** ([Google AI Studio](https://aistudio.google.com/))
+- **Cloudinary Account** (for media hosting)
+- **Stripe Account** (for test mode payments)
 
-### Installation
+---
 
+### Step-by-Step Installation
+
+#### 1. Clone the Repository
 ```bash
-# 1. Clone the repository
-git clone https://github.com/NaimurRahmannn/Ecommerce-sites-with-Django.git
-cd Ecommerce-sites-with-Django
+git clone https://github.com/NaimurRahmannn/Hatify-An-AI-powered-online-Retailer-shop.git
+cd Hatify-An-AI-powered-online-Retailer-shop
+```
 
-# 2. Create & activate virtual environment
+#### 2. Set Up Virtual Environment
+```bash
+# Linux / macOS
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Windows (PowerShell)
 python -m venv .venv
-source .venv/bin/activate        # Linux/macOS
-.venv\Scripts\activate           # Windows
+.venv\Scripts\Activate.ps1
+```
 
-# 3. Install dependencies
+#### 3. Install Dependencies
+```bash
 pip install -r requirements.txt
+```
 
-# 4. Set environment variables
-#    Copy .env.example to .env and fill in your values:
+#### 4. Configure Environment Variables
+Create a `.env` file in the project root based on `.env.example`:
+```bash
 cp .env.example .env
+```
+Fill in your API credentials:
+```env
+SECRET_KEY=your-django-secret-key
+DATABASE_URL=postgresql://postgres:password@localhost:5432/haatify_db
+DJANGO_DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost
 
-# 5. Apply migrations
+# Google Gemini API
+GEMINI_API_KEY=AIzaSy...
+AI_SEARCH_EMBEDDING_PROVIDER=gemini
+AI_SEARCH_EMBEDDING_MODEL=gemini-embedding-2
+AI_CHAT_MODEL=gemini-3.5-flash-lite
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Stripe Test Mode
+STRIPE_PUBLIC_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_CURRENCY=usd
+STRIPE_BDT_PER_USD=120.50
+
+# Google OAuth (Optional)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+#### 5. Run Database Migrations
+```bash
 python manage.py migrate
+```
 
-# 6. Create a superuser
+#### 6. Generate Vector Embeddings for Products
+Generate 768-dimensional embeddings for all existing products in your database:
+```bash
+python manage.py generate_embeddings --batch-size 10
+```
+
+#### 7. Create Superuser & Run Development Server
+```bash
 python manage.py createsuperuser
-
-# 7. Run the development server
 python manage.py runserver
 ```
 
-Visit **http://127.0.0.1:8000** and start exploring! 🎉
+Open **http://127.0.0.1:8000** in your browser! 🎉
 
 <br/>
 
-## 🌍 Deployment (Render)
+---
 
-This project is production-ready for **Render.com**:
+## 🧠 AI Search & Assistant Management
 
-1. Connect your GitHub repo to Render
-2. Set **Build Command** → `./build.sh`
-3. Set **Start Command** → `gunicorn Ecommerce_Storefront.wsgi`
-4. Add the environment variables listed below
-5. Deploy! 🚀
+### Management Commands
+| Command | Description |
+|---|---|
+| `python manage.py generate_embeddings` | Generates semantic vector embeddings for all products missing embeddings. |
+| `python manage.py generate_embeddings --force` | Re-computes and updates embeddings for all products. |
+| `python manage.py test ai_search` | Runs comprehensive test suite for hybrid retrieval and filtering. |
+| `python manage.py test ai_assistant` | Runs unit tests for context building, chat sessions, and serializers. |
 
-<br/>
+---
 
-## 📦 Environment Variables
+## 💳 Stripe Test Payments & Webhooks
 
-| Variable | Description |
-|----------|-------------|
-| `SECRET_KEY` | Django secret key |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
-| `GOOGLE_CLIENT_ID` | Google OAuth web client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `STRIPE_PUBLIC_KEY` | Stripe publishable key (must start with `pk_test_`) |
-| `STRIPE_SECRET_KEY` | Stripe secret key (must start with `sk_test_`) |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (must start with `whsec_`) |
-| `STRIPE_CURRENCY` | Charge currency sent to Stripe (set to `usd`) |
-| `STRIPE_BDT_PER_USD` | BDT-to-USD exchange rate (e.g. `120.50`) |
-
-See `.env.example` for a full template.
-
-<br/>
-
-### Google OAuth
-
-Create a Web application OAuth client in Google Cloud Console and add every callback URL used by the application as an exact **Authorized redirect URI**:
-
-```text
-http://127.0.0.1:8000/accounts/google/login/callback/
-http://localhost:8000/accounts/google/login/callback/
-https://haatify.onrender.com/accounts/google/login/callback/
-```
-
-Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the local `.env` file and in the production environment. The Google sign-in button is hidden when either value is missing.
-
-<br/>
-
-### Stripe Test Mode
-
-Stripe Checkout is enabled only when all five Stripe environment variables are set and keys use test-mode prefixes (`pk_test_`, `sk_test_`, `whsec_`). The checkout tab is hidden when Stripe is disabled.
-
-#### Getting Test Mode Keys
-
-1. Go to the [Stripe Dashboard → Test Mode → API Keys](https://dashboard.stripe.com/test/apikeys).
-2. Copy the **Publishable key** (`pk_test_...`) → `STRIPE_PUBLIC_KEY`.
-3. Copy the **Secret key** (`sk_test_...`) → `STRIPE_SECRET_KEY`.
-
-#### Local Webhook Forwarding (Stripe CLI)
-
-The local CLI signing secret is **different** from the Dashboard endpoint secret.
-
-```bash
-# Install the Stripe CLI, then:
-stripe listen --forward-to localhost:8000/payments/webhook/ --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,payment_intent.payment_failed,charge.refunded
-```
-
-The CLI prints a signing secret (`whsec_...`). Set it as `STRIPE_WEBHOOK_SECRET` in your `.env`.
-
-#### Deployed Webhook (Render)
-
-In the [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/test/webhooks):
-
-1. Add endpoint: `https://haatify.onrender.com/payments/webhook/`
-2. Subscribe to these events:
-   - `checkout.session.completed`
-   - `checkout.session.async_payment_succeeded`
-   - `checkout.session.async_payment_failed`
-   - `checkout.session.expired`
-   - `payment_intent.payment_failed`
-   - `charge.refunded`
-3. Copy the endpoint signing secret → set as `STRIPE_WEBHOOK_SECRET` in Render environment.
-
-> **Note:** The local CLI signing secret and the Dashboard endpoint signing secret are different values. Use the correct one for each environment.
-
-#### Test Cards
+### 1. Test Cards
 
 | Scenario | Card Number | Expiry | CVC |
-|----------|-------------|--------|-----|
-| Successful payment | `4242 4242 4242 4242` | Any future date | Any 3 digits |
-| Requires authentication | `4000 0025 0000 3155` | Any future date | Any 3 digits |
-| Declined | `4000 0000 0000 0002` | Any future date | Any 3 digits |
+|---|---|---|---|
+| **Successful Payment** | `4242 4242 4242 4242` | Any future date | Any 3 digits |
+| **3D Secure (Auth)** | `4000 0025 0000 3155` | Any future date | Any 3 digits |
+| **Declined Payment** | `4000 0000 0000 0002` | Any future date | Any 3 digits |
 
-#### Debugging Webhook Deliveries
-
-Check the [Stripe Dashboard → Webhooks → Recent Deliveries](https://dashboard.stripe.com/test/webhooks) for:
-- HTTP status code (should be `200`)
-- Request/response payloads
-- Retry schedule (Stripe retries failed deliveries for up to 72 hours)
+### 2. Local Webhook Forwarding (Stripe CLI)
+```bash
+stripe listen --forward-to localhost:8000/payments/webhook/ --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,payment_intent.payment_failed,charge.refunded
+```
+Copy the printed `whsec_...` secret to your `.env` as `STRIPE_WEBHOOK_SECRET`.
 
 <br/>
+
+---
+
+## 🌍 Production Deployment (Render)
+
+This repository is configured for one-click deployment on **Render.com**:
+
+1. **Connect GitHub Repo**: Link your repository to a new Render Web Service.
+2. **Build Command**:
+   ```bash
+   ./build.sh
+   ```
+3. **Start Command**:
+   ```bash
+   gunicorn Ecommerce_Storefront.wsgi --timeout 120 --workers 2
+   ```
+   *(Note: `--timeout 120` ensures multi-step GenAI API requests complete reliably).*
+4. **Environment Variables**: Add all variables from your `.env` into Render's Environment settings.
+5. **Database**: Attach a Render PostgreSQL instance (enable `pgvector` by running `CREATE EXTENSION IF NOT EXISTS vector;`).
+
+<br/>
+
+---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to open an issue or submit a pull request.
+Contributions, issues, and feature requests are welcome!
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+<br/>
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
+
+<div align="center">
+Made with ❤️ by <a href="https://github.com/NaimurRahmannn">Naimur Rahman</a>
 </div>
