@@ -4,17 +4,11 @@
 
 ### A Next-Generation Fashion Retail Platform with Hybrid AI Search & Smart Shopping Assistant
 
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Django](https://img.shields.io/badge/Django-6.0-092E20?style=for-the-badge&logo=django&logoColor=white)](https://djangoproject.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.5_Flash_Lite-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
-[![Stripe](https://img.shields.io/badge/Stripe-Checkout_&_Webhooks-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com)
-[![Render](https://img.shields.io/badge/Deployed_on-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://haatify.onrender.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
 
 <br/>
 
-**[🌐 Live Demo](https://haatify.onrender.com)** &nbsp;·&nbsp; **[🎬 Video Demo](https://youtu.be/06E7dtBlxFk?si=zh1EPSy-Z79_eTTK)** &nbsp;·&nbsp; **[🐛 Report Bug](https://github.com/NaimurRahmannn/Hatify-An-AI-powered-online-Retailer-shop/issues)** &nbsp;·&nbsp; **[✨ Request Feature](https://github.com/NaimurRahmannn/Hatify-An-AI-powered-online-Retailer-shop/issues)**
+**[🌐 Live Demo](https://haatify.onrender.com)** &nbsp;·&nbsp; **[🐛 Report Bug](https://github.com/NaimurRahmannn/Hatify-An-AI-powered-online-Retailer-shop/issues)** &nbsp;·&nbsp; **[✨ Request Feature](https://github.com/NaimurRahmannn/Hatify-An-AI-powered-online-Retailer-shop/issues)**
 
 ---
 
@@ -22,12 +16,12 @@
 
 ## 📖 Overview
 
-**Haatify** is an enterprise-grade, modern fashion e-commerce storefront engineered with **Django 6** and augmented with state-of-the-art **Generative AI** and **Vector Retrieval**. 
+**Haatify** is a modern fashion e-commerce storefront engineered with **Django 5.2** and augmented with state-of-the-art **Generative AI** and **Vector Retrieval**. 
 
 Beyond traditional online storefronts, Haatify provides:
 - **Intelligent Hybrid Search (`ai_search`)**: Combines lexical full-text search (PostgreSQL trigram / BM25) with high-dimensional 768-vector embeddings (`pgvector` + Gemini Embedding 2) for deep semantic comprehension (e.g. natural language queries like *"warm winter coat for office casual"*).
 - **Interactive AI Shopping Stylist (`ai_assistant`)**: An in-app conversational assistant powered by **Google Gemini 3.5 Flash Lite** that understands user preferences, recommends matching products, splits results by gender/department, and suggests one-tap conversational filter chips.
-- **Full E-Commerce Life Cycle**: Cart management, dynamic variant pricing, multi-channel checkouts (Stripe Hosted Checkout with automated Webhooks, bKash, Nagad, Cash on Delivery), and dynamic PDF invoice generation.
+- **Full E-Commerce Life Cycle**: Cart management, dynamic variant pricing, multi-channel checkouts (Stripe Hosted Checkout with automated Webhooks, manual bKash/Nagad entry, Cash on Delivery), and HTML invoice views (downloadable as PDFs).
 
 <br/>
 
@@ -41,7 +35,7 @@ Beyond traditional online storefronts, Haatify provides:
 | 🧠 **Semantic Vector Search** | Utilizes 768-dimensional embeddings generated with `gemini-embedding-2` stored in PostgreSQL using the `pgvector` extension with Cosine Distance indexing. |
 | 🔀 **Hybrid Search Fusion** | Blends lexical keyword match scores and semantic cosine similarities for high precision & recall. |
 | 💬 **AI Shopping Stylist Chatbot** | Built on **Gemini 3.5 Flash Lite** with real-time product context injection, multi-turn conversation memory, and streaming-style UX. |
-| 👥 **Smart Gender/Collection Splitting** | Intelligently divides recommendations into **Men's** and **Women's** collections and prompts interactive quick-filter chips. |
+| 👥 **Smart Gender/Collection Splitting** | Intelligently divides search results into **Men's** and **Women's** collections and prompts interactive quick-filter chips. |
 | 📝 **Semantic Embedding Description** | Specialized backend metadata enrichment for fabric, fit, silhouette, color tones, and seasonal aesthetics to power precision vector matching without cluttering customer-facing product pages. |
 
 ### 🛍️ Storefront & E-Commerce Core
@@ -49,9 +43,9 @@ Beyond traditional online storefronts, Haatify provides:
 |---|---|
 | 👗 **Product Catalog & Variants** | Full catalog with categories (Men, Women), color/size variants, dynamic stock tracking, and variant-based pricing. |
 | 🛒 **Cart & Session Management** | Session-backed shopping cart with instant quantity updates, variant switching, and stock threshold validation. |
-| 💳 **Multi-Channel Checkout** | **Stripe Hosted Checkout** (Test Mode), **bKash**, **Nagad**, and **Cash on Delivery (COD)**. |
+| 💳 **Multi-Channel Checkout** | **Stripe Hosted Checkout** (Test Mode), manual **bKash** / **Nagad** entry, and **Cash on Delivery (COD)**. |
 | ⚡ **Robust Webhook Handling** | Production-ready Stripe webhooks verifying signatures (`checkout.session.completed`, `charge.refunded`, async payments, etc.). |
-| 🧾 **Invoice & Order Confirmation** | Instant order confirmation summaries and on-demand downloadable PDF invoices. |
+| 🧾 **Invoice & Order Confirmation** | Instant order confirmation summaries and HTML invoice views (downloadable as PDFs). |
 | 👤 **User Authentication** | Standard registration/login, password reset flows, and single-click **Google OAuth 2.0** via `django-allauth`. |
 | 🖼️ **Cloudinary Media Storage** | Scalable cloud image hosting with automatic optimizations and transformations. |
 | 🛡️ **Django Admin Dashboard** | Full CRUD capabilities for products, inventory, embeddings, orders, and user permissions. |
@@ -88,7 +82,7 @@ Beyond traditional online storefronts, Haatify provides:
 
 | Layer | Technologies & Tools |
 |---|---|
-| **Backend Framework** | Django 6.0 · Python 3.10+ · Gunicorn WSGI |
+| **Backend Framework** | Django 5.2 · Python 3.10+ · Gunicorn WSGI |
 | **Generative AI / LLM** | Google Gemini 3.5 Flash Lite (`gemini-3.5-flash-lite`) |
 | **Embeddings & Search** | Google Gemini Embedding 2 (`gemini-embedding-2`) · `pgvector` (HNSW / IVFFlat cosine) |
 | **Database** | PostgreSQL with `pgvector` extension (via `dj-database-url`) |
