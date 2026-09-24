@@ -37,6 +37,10 @@
     <!-- custom javascript -->
     <script src="/static/js/script.js" type="text/javascript"></script>
 
+    <!-- AI Assistant -->
+    <link href="/static/css/ai_assistant.css" rel="stylesheet" />
+    <script src="/static/js/ai_assistant.js" type="text/javascript" defer></script>
+
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
@@ -1106,5 +1110,9 @@
       });
     })();
     </script>
+
+    <!-- AI Assistant Widget -->
+    {% include "ai_assistant/widget.html" %}
+
   </body>
 </html>

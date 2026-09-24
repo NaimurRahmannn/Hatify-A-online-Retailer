@@ -100,7 +100,42 @@ def retrieve_products(
     # Keyword retrieval
     # -----------------------------------------------------------------
     phase_started = time.perf_counter()
-    keyword_docs = keyword_search(query, limit=candidate_limit, queryset=filtered_qs)
+    
+    search_query_str = query
+    if analysis:
+        search_terms = []
+        if analysis.category:
+            search_terms.append(analysis.category)
+        if analysis.brand:
+            search_terms.append(analysis.brand)
+        if analysis.gender:
+            search_terms.append(analysis.gender)
+        if analysis.style:
+            search_terms.append(analysis.style)
+        if analysis.occasion:
+            search_terms.append(analysis.occasion)
+        if analysis.season:
+            search_terms.append(analysis.season)
+        search_terms.extend(analysis.colors)
+        search_terms.extend(analysis.sizes)
+        search_terms.extend(analysis.keywords)
+        
+        search_terms = [str(t) for t in search_terms if t]
+        if search_terms:
+            search_query_str = " ".join(search_terms)
+        else:
+            words = [
+                w for w in query.split()
+                if w.lower() not in {
+                    "show", "me", "find", "looking", "for", "please", "can", "you",
+                    "i", "want", "get", "give", "list", "search", "display", "the",
+                    "a", "an", "all", "of", "in", "with", "some", "any"
+                }
+            ]
+            if words:
+                search_query_str = " ".join(words)
+
+    keyword_docs = keyword_search(search_query_str, limit=candidate_limit, queryset=filtered_qs)
     keyword_scores: dict[int, float] = {
         doc.pk: doc.keyword_score for doc in keyword_docs
     }
@@ -141,6 +176,16 @@ def retrieve_products(
         doc.pk: doc for doc in keyword_docs
     }
     docs_map.update(semantic_docs_map)
+
+    # If both keyword and semantic searches returned 0 candidates,
+    # but analysis produced meaningful metadata filters that matched documents,
+    # include those filtered documents as candidates.
+    if not all_doc_ids and analysis and analysis.is_meaningful_filter():
+        fallback_candidates = list(filtered_qs[:candidate_limit])
+        for doc in fallback_candidates:
+            all_doc_ids.add(doc.pk)
+            docs_map[doc.pk] = doc
+            norm_keyword[doc.pk] = 1.0
 
     # Fetch any documents we don't already have in memory
     missing_ids = all_doc_ids - set(docs_map)

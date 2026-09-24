@@ -1,3 +1,5 @@
+from ai_assistant.serializers import serialize_products
+
 def build_product_context(products, max_products: int = 5) -> str:
     """
     Convert retrieved products into LLM-friendly context.
@@ -7,7 +9,10 @@ def build_product_context(products, max_products: int = 5) -> str:
         return "No products found."
 
     context_parts = []
-    for i, p in enumerate(products[:max_products], 1):
+    # Serialize to ensure we're working with dicts instead of SearchResult objects
+    serialized_products = serialize_products(products[:max_products])
+    
+    for i, p in enumerate(serialized_products, 1):
         name = p.get("name", "Unknown Product")
         price = p.get("price", "N/A")
         metadata = p.get("metadata", {})
@@ -33,6 +38,9 @@ def build_product_context(products, max_products: int = 5) -> str:
         product_str += f"Name: {name}\n"
         product_str += f"Category: {category}\n"
         product_str += f"Price: {price} BDT\n"
+        url = p.get("url")
+        if url:
+            product_str += f"URL: {url}\n"
         
         # Only add available fields
         if brand: product_str += f"Brand: {brand}\n"

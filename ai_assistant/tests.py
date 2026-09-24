@@ -12,10 +12,12 @@ Covers:
 """
 
 import json
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client, override_settings
+from django.template.loader import render_to_string
+from django.test import TestCase, Client, SimpleTestCase, override_settings
 from django.urls import reverse
 
 from ai_assistant.models import Conversation, Message, ChatRequestLog
@@ -26,6 +28,20 @@ from ai_assistant.services.memory_service import ConversationMemoryService
 from ai_assistant.services.recommendation_service import RecommendationService
 
 User = get_user_model()
+
+
+class WidgetTemplateTests(SimpleTestCase):
+    def test_base_template_includes_accessible_chat_widget(self):
+        html = render_to_string("base/base.html")
+
+        self.assertIn('id="ai-chat-toggle"', html)
+        self.assertIn('id="ai-chat-window"', html)
+        self.assertIn('id="ai-chat-form"', html)
+        self.assertIn('id="ai-chat-close"', html)
+        self.assertIn('id="ai-chat-send"', html)
+        self.assertIn('type="submit"', html)
+        self.assertIn('/static/css/ai_assistant.css', html)
+        self.assertIn('/static/js/ai_assistant.js', html)
 
 
 # =====================================================================
@@ -156,6 +172,31 @@ class SerializerTests(TestCase):
         self.assertEqual(serialize_products([]), [])
         self.assertEqual(serialize_products(None), [])
 
+    def test_serialize_document_uses_product_link_image_and_id(self):
+        image = SimpleNamespace(
+            product_image=SimpleNamespace(url="/media/product/red-dress.jpg")
+        )
+        image_manager = MagicMock()
+        image_manager.first.return_value = image
+        product = SimpleNamespace(
+            pk=23,
+            slug="red-dress",
+            product_name="Red Dress",
+            product_images=image_manager,
+        )
+        document = SimpleNamespace(
+            pk=91,
+            metadata={"price": 0, "category": "Dresses"},
+            product=product,
+        )
+
+        result = serialize_product(SimpleNamespace(document=document))
+
+        self.assertEqual(result["id"], 23)
+        self.assertEqual(result["name"], "Red Dress")
+        self.assertEqual(result["url"], "/product/red-dress/")
+        self.assertEqual(result["image"], "/media/product/red-dress.jpg")
+
 
 # =====================================================================
 # Memory Service
@@ -264,6 +305,30 @@ class APITests(TestCase):
         # Memory saved
         self.assertEqual(Conversation.objects.count(), 1)
         self.assertEqual(Message.objects.count(), 2)
+
+    @patch("ai_assistant.views.process_chat_message")
+    def test_widget_csrf_token_authorizes_chat_request(self, mock_process):
+        mock_process.return_value = {
+            "message": "Assistant reply",
+            "products": [],
+            "timings": {},
+            "prompt_version": "v2",
+            "intent": "general_question",
+        }
+        csrf_client = Client(enforce_csrf_checks=True)
+        page = csrf_client.get(reverse("contact"))
+        csrf_cookie = page.cookies.get("csrftoken")
+
+        self.assertEqual(page.status_code, 200)
+        self.assertIsNotNone(csrf_cookie)
+        response = csrf_client.post(
+            self.url,
+            data=json.dumps({"message": "test message"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf_cookie.value,
+        )
+
+        self.assertEqual(response.status_code, 200)
 
     def test_api_empty_query(self):
         response = self.client.post(

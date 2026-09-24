@@ -17,7 +17,7 @@ class GeminiLLMProvider(LLMProvider):
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.model_name = getattr(settings, "AI_SEARCH", {}).get(
-            "CHAT_MODEL", "gemini-3.6-flash"
+            "CHAT_MODEL", "gemini-3.5-flash-lite"
         )
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY is not set.")

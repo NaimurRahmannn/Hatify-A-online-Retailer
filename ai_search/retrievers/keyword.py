@@ -22,18 +22,23 @@ def keyword_search(
     """Return search documents ranked by PostgreSQL full-text relevance.
 
     Each returned document is annotated with a ``keyword_score`` attribute.
-    Only documents with a positive rank are included.
+    Only documents that match the search query are included.
     """
+    clean_query = query.strip()
+    if not clean_query:
+        return []
+
     search_vector = SearchVector("searchable_text", config="simple")
-    search_query = SearchQuery(query, config="simple", search_type="websearch")
+    search_query = SearchQuery(clean_query, config="simple", search_type="websearch")
 
     base_qs = queryset if queryset is not None else ProductSearchDocument.objects.all()
 
     results = (
         base_qs.annotate(
+            _sv=search_vector,
             keyword_score=SearchRank(search_vector, search_query),
         )
-        .filter(keyword_score__gt=0)
+        .filter(_sv=search_query)
         .order_by("-keyword_score", "pk")[:limit]
     )
 

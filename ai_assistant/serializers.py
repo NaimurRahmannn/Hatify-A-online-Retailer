@@ -5,6 +5,38 @@ into a clean, stable API contract so the view layer never inspects domain
 internals.
 """
 
+from django.urls import reverse
+
+
+def _first_present(*values):
+    """Return the first value that is not ``None`` or an empty string."""
+    for value in values:
+        if value is not None and value != "":
+            return value
+    return None
+
+
+def _public_scalar(value):
+    """Keep response identifiers/text primitive when loose test doubles appear."""
+    return value if isinstance(value, (str, int)) else None
+
+
+def _product_image_url(product) -> str:
+    """Return the first image URL without leaking storage failures."""
+    if product is None:
+        return ""
+    try:
+        image = product.product_images.first()
+        return image.product_image.url if image else ""
+    except (AttributeError, ValueError):
+        return ""
+
+
+def _product_url(slug) -> str:
+    if not isinstance(slug, str) or not slug:
+        return ""
+    return reverse("get_product", kwargs={"slug": slug})
+
 
 def serialize_product(product) -> dict:
     """Convert a single retrieval result into the public API shape.
@@ -24,23 +56,39 @@ def serialize_product(product) -> dict:
 
     if isinstance(doc, dict):
         metadata = doc.get("metadata", {})
+        slug = _first_present(doc.get("slug"), metadata.get("slug"))
         return {
-            "id": doc.get("pk") or doc.get("id"),
+            "id": _first_present(
+                doc.get("product_id"), metadata.get("product_id"),
+                doc.get("pk"), doc.get("id")
+            ),
             "name": doc.get("name", ""),
-            "price": metadata.get("price") or doc.get("price"),
-            "image": metadata.get("image", ""),
+            "price": _first_present(metadata.get("price"), doc.get("price")),
+            "image": _first_present(
+                doc.get("image"), metadata.get("image")
+            ) or "",
             "category": metadata.get("category", ""),
+            "url": _first_present(
+                doc.get("url"), metadata.get("url"), _product_url(slug)
+            ) or "",
             "metadata": metadata,
         }
 
     # ORM model instance (ProductSearchDocument)
     metadata = doc.metadata if isinstance(doc.metadata, dict) else {}
+    product = getattr(doc, "product", None)
+    product_id = _public_scalar(getattr(product, "pk", None))
+    product_name = _public_scalar(getattr(product, "product_name", "")) or ""
+    product_slug = _public_scalar(getattr(product, "slug", "")) or ""
     return {
-        "id": doc.pk,
-        "name": doc.name,
+        "id": _first_present(product_id, metadata.get("product_id"), doc.pk),
+        "name": _first_present(getattr(doc, "name", ""), product_name) or "",
         "price": metadata.get("price"),
-        "image": metadata.get("image", ""),
+        "image": _first_present(
+            metadata.get("image"), _product_image_url(product)
+        ) or "",
         "category": metadata.get("category", ""),
+        "url": _first_present(metadata.get("url"), _product_url(product_slug)) or "",
         "metadata": metadata,
     }
 

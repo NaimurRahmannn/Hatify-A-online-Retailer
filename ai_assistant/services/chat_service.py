@@ -63,9 +63,22 @@ def process_chat_message(query: str, conversation: Conversation) -> dict:
     except Exception as e:
         logger.error(f"LLM generation failed: {e}", exc_info=True)
         if products:
-            response_text = "I found these products that match your request."
+            from ai_assistant.serializers import serialize_products
+            serialized = serialize_products(products)
+            product_links = []
+            for p in serialized:
+                p_name = p.get("name") or "Product"
+                p_url = p.get("url", "")
+                p_price = p.get("price")
+                price_str = f" - BDT {p_price}" if p_price is not None and p_price != "" else ""
+                if p_url:
+                    product_links.append(f"- [{p_name}]({p_url}){price_str}")
+                else:
+                    product_links.append(f"- {p_name}{price_str}")
+            items_str = "\n".join(product_links)
+            response_text = f"I found these products that match your request:\n{items_str}"
         else:
-            response_text = "I'm having trouble processing that request right now. Please try again later."
+            response_text = "I couldn't find any products matching your request. Please try another search."
 
     timings["llm_generation_time_ms"] = round((time.perf_counter() - llm_start) * 1000, 3)
     timings["total_time_ms"] = round((time.perf_counter() - start_time) * 1000, 3)

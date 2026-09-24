@@ -30,6 +30,7 @@ class ProductResponse(BaseModel):
     price: float | str | None = None
     image: str = ""
     category: str = ""
+    url: str = ""
     metadata: dict = Field(default_factory=dict)
 
 

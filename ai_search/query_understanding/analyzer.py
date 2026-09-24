@@ -135,7 +135,7 @@ class QueryAnalyzer:
     def _get_default_provider(self) -> QueryProvider | None:
         config = getattr(settings, "AI_SEARCH", {})
         provider_name = config.get("QUERY_PROVIDER", "gemini").lower()
-        model = config.get("QUERY_MODEL", "gemini-2.5-flash")
+        model = config.get("QUERY_MODEL", "gemini-3.5-flash-lite")
 
         if provider_name == "gemini":
             import os

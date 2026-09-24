@@ -1,0 +1,58 @@
+<!-- Floating Action Button -->
+<button class="ai-chat-toggle" id="ai-chat-toggle" type="button"
+        aria-label="Open AI Fashion Assistant" aria-controls="ai-chat-window"
+        aria-expanded="false">
+    <i class="fas fa-comment-dots ai-icon-chat"></i>
+    <i class="fas fa-times ai-icon-close"></i>
+</button>
+
+<!-- Chat Window -->
+<section class="ai-chat-window" id="ai-chat-window" aria-label="AI Fashion Assistant">
+    
+    <!-- Header -->
+    <div class="ai-chat-header">
+        <div class="ai-chat-avatar">
+            <i class="fas fa-gem"></i>
+        </div>
+        <div class="ai-chat-header-info">
+            <h4>Haatify Stylist</h4>
+            <span><span class="ai-status-dot"></span> Online</span>
+        </div>
+        <button class="ai-chat-close" id="ai-chat-close" type="button"
+                aria-label="Close AI Fashion Assistant">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    <!-- Messages Container -->
+    <div class="ai-chat-messages" id="ai-chat-messages" aria-live="polite">
+        <!-- Default Welcome Message -->
+        <div class="ai-msg-welcome">
+            Welcome to <strong>Haatify</strong> luxury.<br>
+            Ask me to find products, compare items, or get fashion advice.
+        </div>
+        
+        <!-- Typing Indicator (Hidden by default) -->
+        <div class="ai-typing" id="ai-typing-indicator" style="display: none;">
+            <div class="ai-typing-dot"></div>
+            <div class="ai-typing-dot"></div>
+            <div class="ai-typing-dot"></div>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <form class="ai-chat-input-area" id="ai-chat-form">
+        {% csrf_token %}
+        <label class="sr-only" for="ai-chat-input">Message Haatify Stylist</label>
+        <input type="text" 
+               id="ai-chat-input" 
+               class="ai-chat-input" 
+               placeholder="Ask for fashion advice..."
+               autocomplete="off"
+               maxlength="500">
+        <button id="ai-chat-send" class="ai-chat-send" type="submit" aria-label="Send Message">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+        </button>
+    </form>
+
+</section>
