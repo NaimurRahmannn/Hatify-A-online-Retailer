@@ -1,15 +1,26 @@
+"""Intent-based routing for the AI Assistant pipeline.
+
+Maps the ``intent`` extracted by QueryAnalysis to a routing
+configuration that tells the chat service whether to invoke the
+Hybrid Retrieval Engine and what additional LLM instructions to
+append.
+"""
+
+from ai_assistant.services.recommendation_service import RecommendationService
+
+
 class IntentRouter:
     """Routes the user request based on the identified intent."""
-    
+
     @staticmethod
     def route_request(intent: str) -> dict:
-        """
-        Returns routing configuration based on intent.
-        
+        """Return routing configuration for the given intent.
+
         Returns:
             dict: {
                 "should_retrieve": bool,
                 "system_instruction_append": str,
+                "recommendation_response": dict | None,
             }
         """
         intent = (intent or "general_question").lower()
@@ -17,27 +28,54 @@ class IntentRouter:
         if intent == "product_search":
             return {
                 "should_retrieve": True,
-                "system_instruction_append": ""
+                "system_instruction_append": "",
+                "recommendation_response": None,
             }
-        elif intent == "comparison":
+
+        if intent == "comparison":
             return {
                 "should_retrieve": True,
-                "system_instruction_append": "Compare the features, prices, and styles of the retrieved products."
+                "system_instruction_append": (
+                    "Compare the features, prices, and styles of the "
+                    "retrieved products."
+                ),
+                "recommendation_response": None,
             }
-        elif intent == "recommendation":
-            # Future placeholder for a recommendation engine. For now, use hybrid retrieval.
+
+        if intent == "recommendation":
+            # Delegate to the RecommendationService placeholder.
+            rec = RecommendationService.recommend("")
+            if rec["available"]:
+                # Future: when the engine is live, return its products.
+                return {
+                    "should_retrieve": False,
+                    "system_instruction_append": "",
+                    "recommendation_response": rec,
+                }
+            # Engine not ready – fall back to hybrid retrieval.
             return {
                 "should_retrieve": True,
-                "system_instruction_append": "Recommend the best product among these options based on the user's implicit preferences."
+                "system_instruction_append": (
+                    "The personalized recommendation engine is not yet "
+                    "available. Use the retrieved products to suggest "
+                    "the best options based on the user's query."
+                ),
+                "recommendation_response": rec,
             }
-        elif intent == "general_question":
+
+        if intent == "general_question":
             return {
                 "should_retrieve": False,
-                "system_instruction_append": "Answer the general question based on your fashion expertise. Do not invent Haatify products."
+                "system_instruction_append": (
+                    "Answer the general question based on your fashion "
+                    "expertise. Do not invent Haatify products."
+                ),
+                "recommendation_response": None,
             }
-        else:
-            # Fallback
-            return {
-                "should_retrieve": True,
-                "system_instruction_append": ""
-            }
+
+        # Fallback for unknown intents
+        return {
+            "should_retrieve": True,
+            "system_instruction_append": "",
+            "recommendation_response": None,
+        }

@@ -2,7 +2,7 @@ import logging
 import time
 
 from ai_search.services.retrieval_service import retrieve_products
-from ai_search.query_understanding.analyzer import get_query_analyzer
+from ai_search.query_understanding import analyze_query
 from ai_assistant.services.context_builder import build_product_context
 from ai_assistant.services.llm_provider import get_llm_provider
 from ai_assistant.services.intent_router import IntentRouter
@@ -18,15 +18,18 @@ def process_chat_message(query: str, conversation: Conversation) -> dict:
     timings = {}
 
     memory_service = ConversationMemoryService(max_messages=5)
-    history = memory_service.get_formatted_history(conversation)
+    memory_context = memory_service.get_memory_context(conversation)
+    history = memory_context["recent_messages"]
     context_aware_query = memory_service.build_context_aware_query(query, history)
 
-    # Pre-analyze intent if possible, or we could just use retrieve_products
-    # We will use the QueryAnalyzer to get the intent FIRST, so we can route.
+    # ------------------------------------------------------------------
+    # Single query analysis – the result is passed downstream so that
+    # retrieve_products does NOT re-analyse the same query.
+    # ------------------------------------------------------------------
     analysis_start = time.perf_counter()
-    analyzer = get_query_analyzer()
-    analysis_result = analyzer.analyze(context_aware_query)
-    intent = analysis_result.intent
+    analysis_result = analyze_query(context_aware_query)
+    analysis = analysis_result.analysis
+    intent = analysis.intent
     timings["analysis_ms"] = round((time.perf_counter() - analysis_start) * 1000, 3)
 
     route_config = IntentRouter.route_request(intent)
@@ -35,9 +38,10 @@ def process_chat_message(query: str, conversation: Conversation) -> dict:
     if route_config["should_retrieve"]:
         retrieval_start = time.perf_counter()
         try:
-            # We already analyzed, but retrieve_products does its own analysis. 
-            # In a fully optimized system, we'd pass the analysis down, but for now we just call it.
-            retrieval_results = retrieve_products(context_aware_query, limit=5)
+            # Pass the pre-computed analysis so retrieval skips its own.
+            retrieval_results = retrieve_products(
+                context_aware_query, limit=5, analysis=analysis
+            )
         except Exception as e:
             logger.error(f"Retrieval failed: {e}", exc_info=True)
         timings["retrieval_time_ms"] = round((time.perf_counter() - retrieval_start) * 1000, 3)
@@ -51,8 +55,7 @@ def process_chat_message(query: str, conversation: Conversation) -> dict:
     llm_start = time.perf_counter()
     try:
         provider = get_llm_provider()
-        
-        # We can append routing instructions to the context block internally
+
         if route_config["system_instruction_append"]:
             context += f"\n\nAdditional Instruction: {route_config['system_instruction_append']}"
 
@@ -63,10 +66,10 @@ def process_chat_message(query: str, conversation: Conversation) -> dict:
             response_text = "I found these products that match your request."
         else:
             response_text = "I'm having trouble processing that request right now. Please try again later."
-    
+
     timings["llm_generation_time_ms"] = round((time.perf_counter() - llm_start) * 1000, 3)
     timings["total_time_ms"] = round((time.perf_counter() - start_time) * 1000, 3)
-    
+
     ChatRequestLog.objects.create(
         conversation=conversation,
         query=query,
@@ -77,12 +80,11 @@ def process_chat_message(query: str, conversation: Conversation) -> dict:
         total_time_ms=timings.get("total_time_ms"),
     )
 
-    # Return structured data for the API and logging
     return {
         "message": response_text,
         "products": products,
         "timings": timings,
-        "analysis": analysis_result.model_dump(),
+        "analysis": analysis.model_dump(),
         "prompt_version": SYSTEM_PROMPT_VERSION,
         "intent": intent,
     }

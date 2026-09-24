@@ -52,11 +52,20 @@ def _normalize_scores(
 def retrieve_products(
     query: str,
     limit: int | None = None,
+    analysis=None,
 ) -> dict:
     """Run hybrid retrieval and return ranked product results.
 
     If semantic search fails (e.g. Gemini outage), the service degrades
     gracefully to keyword-only results.
+
+    Args:
+        query: The user's search query string.
+        limit: Maximum number of results to return.
+        analysis: An optional pre-computed QueryAnalysis object. When
+            provided the internal ``analyze_query`` call is skipped,
+            eliminating duplicate work in pipelines that have already
+            performed query understanding (e.g. the chat service).
     """
     total_started = time.perf_counter()
     config = getattr(settings, "AI_SEARCH", {})
@@ -71,9 +80,15 @@ def retrieve_products(
     # -----------------------------------------------------------------
     # Query Understanding and Filtering
     # -----------------------------------------------------------------
+    cache_hit = False
     phase_started = time.perf_counter()
-    analysis_result = analyze_query(query)
-    analysis = analysis_result.analysis
+    if analysis is not None:
+        # Caller already ran query understanding – reuse it.
+        analysis_ms = 0.0
+    else:
+        analysis_result = analyze_query(query)
+        analysis = analysis_result.analysis
+        cache_hit = analysis_result.cache_hit
     analysis_ms = _elapsed_ms(phase_started)
 
     phase_started = time.perf_counter()
@@ -192,6 +207,6 @@ def retrieve_products(
     return {
         "analysis": analysis.model_dump(exclude_none=True),
         "results": ranked_results,
-        "cache_hit": analysis_result.cache_hit,
+        "cache_hit": cache_hit,
         "timings": timings,
     }

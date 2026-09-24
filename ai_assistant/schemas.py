@@ -1,16 +1,42 @@
-from typing import List, Optional
-from pydantic import BaseModel, Field
+"""Pydantic schemas for the AI Assistant chat API.
 
-class ProductSchema(BaseModel):
-    id: int
-    name: str
-    price: float
-    # We can add more fields if needed for the response
+These schemas define the request / response contract validated at the
+API boundary so that business logic never handles raw JSON.
+"""
 
-class ChatRequestSchema(BaseModel):
-    message: str = Field(..., description="The user's chat message")
+from pydantic import BaseModel, Field, field_validator
 
-class ChatResponseSchema(BaseModel):
-    message: str = Field(..., description="The assistant's response")
-    products: List[ProductSchema] = Field(default_factory=list, description="Retrieved products")
-    conversation_id: str = Field(..., description="The UUID of the conversation")
+
+class ChatRequest(BaseModel):
+    """Incoming chat request body."""
+
+    message: str = Field(..., min_length=1, max_length=500)
+    conversation_id: str | None = Field(default=None)
+
+    @field_validator("message")
+    @classmethod
+    def message_not_blank(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Message must not be blank.")
+        return stripped
+
+
+class ProductResponse(BaseModel):
+    """A single product in the API response."""
+
+    id: int | str | None = None
+    name: str = ""
+    price: float | str | None = None
+    image: str = ""
+    category: str = ""
+    metadata: dict = Field(default_factory=dict)
+
+
+class ChatResponse(BaseModel):
+    """Outgoing chat response body."""
+
+    conversation_id: str
+    answer: str
+    products: list[ProductResponse] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
