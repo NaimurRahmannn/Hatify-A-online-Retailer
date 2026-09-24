@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'accounts',
     'home',
     'ai_search.apps.AiSearchConfig',
+    'ai_assistant',
 ]
 
 # This is part of the database schema. Changing it requires a Django migration.
@@ -86,6 +87,8 @@ AI_SEARCH = {
     "EMBEDDING_DIMENSION": AI_SEARCH_EMBEDDING_DIMENSION,
     "QUERY_PROVIDER": os.environ.get("AI_QUERY_PROVIDER", "gemini"),
     "QUERY_MODEL": os.environ.get("AI_QUERY_MODEL", "gemini-3.6-flash"),
+    "CHAT_PROVIDER": os.environ.get("AI_CHAT_PROVIDER", "gemini"),
+    "CHAT_MODEL": os.environ.get("AI_CHAT_MODEL", "gemini-3.6-flash"),
     "KEYWORD_WEIGHT": 0.5,
     "SEMANTIC_WEIGHT": 0.5,
     "DEFAULT_LIMIT": 10,
