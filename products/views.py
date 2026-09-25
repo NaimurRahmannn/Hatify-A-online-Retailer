@@ -36,15 +36,22 @@ def _save_cart(request, cart):
     request.session.modified = True
 
 
+from ai_search.services.retrieval_service import retrieve_products
+
 def search(request):
     query = request.GET.get('q', '').strip()
     products = []
     if query:
-        products = Product.objects.filter(
-            Q(product_name__icontains=query)
-            | Q(category__categroy_name__icontains=query)
-            | Q(product_description__icontains=query)
-        ).distinct()
+        try:
+            results = retrieve_products(query)
+            products = [res.document.product for res in results.get("results", [])]
+        except Exception:
+            logger.exception("AI search failed, falling back to standard search")
+            products = Product.objects.filter(
+                Q(product_name__icontains=query)
+                | Q(category__categroy_name__icontains=query)
+                | Q(product_description__icontains=query)
+            ).distinct()
     return render(request, 'product/search.html', {'products': products, 'query': query})
 
 
