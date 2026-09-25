@@ -100,58 +100,78 @@ The `ai_assistant` application adds a browser chat widget and a JSON API that:
 
 ### Application overview
 
-```text
-Browser
-  |
-  |-- Storefront pages ------------------------ products / accounts / payments
-  |
-  |-- POST /api/ai-search/ -------------------- ai_search
-  |
-  `-- POST /api/ai-assistant/chat/ ------------ ai_assistant
-                                                   |
-                                                   v
-                                           hybrid retrieval
-                                                   |
-                      +----------------------------+------------------+
-                      |                                               |
-                      v                                               v
-          PostgreSQL full-text search                    pgvector cosine search
-                      |                                               |
-                      +----------------------------+------------------+
-                                                   |
-                                                   v
-                                             ranked products
-                                                   |
-                                                   v
-                                           Gemini response context
+```mermaid
+flowchart TB
+    Browser["Browser / Client"]
+
+    subgraph Django["Django application"]
+        Storefront["Storefront<br/>products, accounts, payments"]
+        SearchAPI["Hybrid Search API<br/>POST /api/ai-search/"]
+        AssistantAPI["AI Assistant API<br/>POST /api/ai-assistant/chat/"]
+        Intent["Intent router and conversation memory"]
+        Retrieval["Hybrid retrieval and ranking"]
+        Context["Bounded product context builder"]
+    end
+
+    subgraph Data["PostgreSQL"]
+        Commerce[("Catalog, users, orders")]
+        Documents[("Product search documents<br/>and JSON metadata")]
+        Vectors[("768-dimensional pgvector<br/>embeddings")]
+        Conversations[("Conversations, messages,<br/>and telemetry")]
+    end
+
+    subgraph External["External services"]
+        Gemini["Google Gemini<br/>query analysis, embeddings, chat"]
+        Redis["Redis<br/>shared cache and rate limits"]
+        Stripe["Stripe Checkout<br/>and signed webhooks"]
+        Cloudinary["Cloudinary media storage"]
+    end
+
+    Browser --> Storefront
+    Browser --> SearchAPI
+    Browser --> AssistantAPI
+
+    Storefront --> Commerce
+    Storefront --> Stripe
+    Storefront --> Cloudinary
+
+    SearchAPI --> Retrieval
+    AssistantAPI --> Intent
+    Intent --> Retrieval
+    Intent --> Conversations
+    Retrieval --> Documents
+    Retrieval --> Vectors
+    Retrieval --> Context
+    Context --> Gemini
+
+    SearchAPI -.->|cached analysis| Redis
+    AssistantAPI -.->|rate limits| Redis
+    Retrieval -.->|query vectors and structured analysis| Gemini
 ```
 
 ### Hybrid retrieval flow
 
-```text
-User query
-   |
-   v
-Normalize query and check analysis cache
-   |
-   v
-Deterministic rules + optional Gemini structured analysis
-   |
-   v
-Exact JSON metadata filters
-   |
-   +-----------------------+
-   |                       |
-   v                       v
-Keyword candidates     Semantic candidates
-   |                       |
-   +-----------+-----------+
-               |
-               v
-      Normalize and combine scores
-               |
-               v
-         Ranked products
+```mermaid
+flowchart TD
+    Query["User query"] --> Normalize["Normalize query"]
+    Normalize --> Cache{"Cached structured analysis?"}
+    Cache -- Yes --> Analysis["Validated QueryAnalysis"]
+    Cache -- No --> Rules["Deterministic rule extraction"]
+    Cache -- No --> LLM["Optional Gemini structured analysis"]
+    Rules --> Merge["Confidence-aware merge<br/>explicit rules take priority"]
+    LLM --> Merge
+    Merge --> Analysis
+    Analysis --> Filters["Exact PostgreSQL JSON metadata filters"]
+
+    Filters --> Keyword["Keyword retrieval<br/>PostgreSQL full-text search"]
+    Filters --> Semantic["Semantic retrieval<br/>pgvector cosine distance"]
+
+    Keyword --> Fusion["Normalize scores and apply configured weights"]
+    Semantic --> Fusion
+    Semantic -.->|provider/vector failure| KeywordOnly["Keyword-only fallback"]
+    KeywordOnly --> Fusion
+    Fusion --> Ranking["Deterministic final ranking"]
+    Ranking --> Results["Ranked products"]
 ```
 
 Deterministic evidence has priority for explicit values such as price limits.
