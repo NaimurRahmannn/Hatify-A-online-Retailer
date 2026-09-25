@@ -105,3 +105,46 @@ class DisabledGoogleAuthTemplateTests(SimpleTestCase):
 class GoogleLogoTests(SimpleTestCase):
     def test_google_logo_is_discoverable(self):
         self.assertIsNotNone(finders.find("images/logos/google_symbol.png"))
+
+from django.contrib.auth import get_user_model
+
+class LoginNextRedirectTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="member@example.com",
+            email="member@example.com",
+            password="secret-pass",
+        )
+
+    def test_login_form_preserves_next_value(self):
+        response = self.client.get(reverse("login"), {"next": "/product/shirt/#reviews"})
+        self.assertContains(
+            response,
+            'name="next" value="/product/shirt/#reviews"',
+        )
+
+    def test_successful_login_redirects_to_safe_next(self):
+        response = self.client.post(
+            reverse("login"),
+            {
+                "email": "member@example.com",
+                "password": "secret-pass",
+                "next": "/product/shirt/#reviews",
+            },
+        )
+        self.assertRedirects(
+            response,
+            "/product/shirt/#reviews",
+            fetch_redirect_response=False,
+        )
+
+    def test_external_next_is_rejected(self):
+        response = self.client.post(
+            reverse("login"),
+            {
+                "email": "member@example.com",
+                "password": "secret-pass",
+                "next": "https://evil.example/steal",
+            },
+        )
+        self.assertRedirects(response, "/", fetch_redirect_response=False)

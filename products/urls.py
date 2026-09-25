@@ -12,6 +12,7 @@ from products.views import (
     invoice,
     search,
     gender_products,
+    submit_review,
 )
 
 urlpatterns = [
@@ -26,5 +27,6 @@ urlpatterns = [
     path('add-to-cart/<slug>/', add_to_cart, name="add_to_cart"),
     path('remove-from-cart/<slug>/', remove_from_cart, name="remove_from_cart"),
     path('category/<slug:slug>/', category_products, name="category_products"),
+    path('<slug:slug>/reviews/', submit_review, name="submit_review"),
     path('<slug>/', get_product, name="get_product"),
 ]

@@ -8,27 +8,51 @@ from django.http import HttpResponseRedirect,HttpResponse
 from .models import Profile
 from base.emails import send_account_activation_email
 import logging
+from django.utils.http import url_has_allowed_host_and_scheme
 
 
 logger = logging.getLogger(__name__)
-# Create your views here.
+def _safe_login_redirect(request):
+    candidate = request.POST.get("next") or request.GET.get("next") or ""
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return candidate
+    return getattr(settings, 'LOGIN_REDIRECT_URL', '/')
+
+
 def login_page(request):
-     if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        user_obj = User.objects.filter(username = email)
+    next_url = _safe_login_redirect(request)
+    if request.method == "POST":
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        if not User.objects.filter(username=email).exists():
+            messages.warning(request, "Account not found.")
+            return render(
+                request,
+                "accounts/login.html",
+                {"next": next_url},
+            )
 
-        if not user_obj.exists():
-            messages.warning(request, 'Account not found.')
-            return HttpResponseRedirect(request.path_info)
-
-        user_obj = authenticate(username = email , password= password)
+        user_obj = authenticate(username=email, password=password)
         if user_obj:
-            login(request , user_obj)
-            return redirect('/')
-        messages.warning(request, 'Invalid credentials')
-        return HttpResponseRedirect(request.path_info)
-     return render(request, 'accounts/login.html')
+            login(request, user_obj)
+            return redirect(next_url)
+
+        messages.warning(request, "Invalid credentials")
+        return render(
+            request,
+            "accounts/login.html",
+            {"next": next_url},
+        )
+
+    return render(
+        request,
+        "accounts/login.html",
+        {"next": next_url},
+    )
 def register_page(request):
     if request.method == 'POST':
         first_name = request.POST.get('first_name')

@@ -2,12 +2,22 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib import messages
 from django.conf import settings
+from django.core.paginator import Paginator
 from django.db.models import Q
-from products.models import Product, Category, Order, OrderItem
+from products.forms import ProductReviewForm
+from products.models import Product, Category, Order, OrderItem, ProductReview
 from products.checkout_snapshots import (
     CheckoutSnapshotError,
     create_checkout_snapshot,
 )
+from products.review_service import build_review_summary, get_ordered_unit_count
+import logging
+from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
+from django.urls import reverse
+from django.views.decorators.http import require_POST
+
+logger = logging.getLogger(__name__)
 
 
 def _get_cart(request):
@@ -38,9 +48,112 @@ def search(request):
     return render(request, 'product/search.html', {'products': products, 'query': query})
 
 
-def get_product(request, slug):
+def _product_detail_context(request, product, review_form=None):
+    reviews = product.reviews.select_related("user").all()
+    reviews_page = Paginator(reviews, 10).get_page(
+        request.GET.get("reviews_page", 1)
+    )
+    own_review = None
+    if request.user.is_authenticated:
+        own_review = ProductReview.objects.filter(
+            product=product,
+            user=request.user,
+        ).first()
+    if review_form is None:
+        review_form = ProductReviewForm(instance=own_review)
+    return {
+        "product": product,
+        "review_summary": build_review_summary(product),
+        "ordered_unit_count": get_ordered_unit_count(product),
+        "reviews": reviews_page,
+        "own_review": own_review,
+        "review_form": review_form,
+    }
+
+
+def _product_reviews_url(product):
+    return f'{reverse("get_product", kwargs={"slug": product.slug})}#reviews'
+
+
+@login_required
+@require_POST
+def submit_review(request, slug):
     product = get_object_or_404(Product, slug=slug)
-    return render(request, "product/product.html", context={"product": product})
+    existing = ProductReview.objects.filter(
+        product=product,
+        user=request.user,
+    ).first()
+    form = ProductReviewForm(request.POST, instance=existing)
+    if not form.is_valid():
+        return render(
+            request,
+            "product/product.html",
+            _product_detail_context(request, product, review_form=form),
+            status=400,
+        )
+
+    was_created = existing is None
+    try:
+        with transaction.atomic():
+            locked_review = (
+                ProductReview.objects.select_for_update()
+                .filter(product=product, user=request.user)
+                .first()
+            )
+            locked_form = ProductReviewForm(request.POST, instance=locked_review)
+            if not locked_form.is_valid():
+                return render(
+                    request,
+                    "product/product.html",
+                    _product_detail_context(
+                        request,
+                        product,
+                        review_form=locked_form,
+                    ),
+                    status=400,
+                )
+            review = locked_form.save(commit=False)
+            review.product = product
+            review.user = request.user
+            review.save()
+    except IntegrityError:
+        concurrent_review = ProductReview.objects.filter(
+            product=product,
+            user=request.user,
+        ).first()
+        logger.warning(
+            "Concurrent review write rejected for product=%s user=%s existing=%s",
+            product.pk,
+            request.user.pk,
+            concurrent_review.pk if concurrent_review else None,
+        )
+        messages.error(
+            request,
+            "Your review changed in another request. Please try again.",
+        )
+        return redirect(_product_reviews_url(product))
+
+    messages.success(
+        request,
+        "Your review was submitted." if was_created else "Your review was updated.",
+    )
+    return redirect(_product_reviews_url(product))
+
+
+def get_product(request, slug):
+    product = get_object_or_404(
+        Product.objects.prefetch_related(
+            "product_images",
+            "color_variant",
+            "size_variant",
+        ),
+        slug=slug,
+    )
+    return render(
+        request,
+        "product/product.html",
+        _product_detail_context(request, product),
+    )
 
 
 def add_to_cart(request, slug):

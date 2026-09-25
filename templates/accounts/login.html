@@ -347,6 +347,7 @@
 
       <form method="POST">
         {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
 
         <div class="auth-input-group">
           <label for="login-email">Email Address</label>
@@ -377,6 +378,7 @@
       {% if google_auth_enabled %}
         <form method="post" action="{% provider_login_url 'google' process='login' %}" class="google-auth-form">
           {% csrf_token %}
+          {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
           <button type="submit" class="google-auth-btn">
             <img src="{% static 'images/logos/google_symbol.png' %}" alt="" width="20" height="20">
             <span>Continue with Google</span>

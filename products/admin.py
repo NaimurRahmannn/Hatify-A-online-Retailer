@@ -60,3 +60,20 @@ class OrderAdmin(admin.ModelAdmin):
 admin.site.register(Product ,ProductAdmin)
 
 admin.site.register(ProductImage)
+
+@admin.register(ProductReview)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = ["product", "user", "rating", "created_at", "updated_at"]
+    list_filter = ["rating", "created_at"]
+    search_fields = [
+        "product__product_name",
+        "user__username",
+        "user__email",
+        "comment",
+    ]
+    list_select_related = ["product", "user"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return ["product", "user"]
+        return []
